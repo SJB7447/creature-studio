@@ -131,7 +131,7 @@ export default function NewProjectPage() {
           broadcaster,
           runtime,
           totalEpisodes,
-          submissionDeadline: submissionDeadline || undefined,
+          ...(submissionDeadline ? { submissionDeadline } : {}),
         },
         ownerId: user!.uid,
         collaborators: [],

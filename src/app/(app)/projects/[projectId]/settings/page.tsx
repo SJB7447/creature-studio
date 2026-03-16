@@ -92,7 +92,7 @@ export default function ProjectSettingsPage() {
           broadcaster: data.broadcaster,
           runtime: data.runtime,
           totalEpisodes: Number(data.totalEpisodes),
-          submissionDeadline: data.submissionDeadline || undefined,
+          ...(data.submissionDeadline ? { submissionDeadline: data.submissionDeadline } : {}),
         },
       })
     },
