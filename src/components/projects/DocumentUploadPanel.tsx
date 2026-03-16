@@ -172,10 +172,10 @@ export default function DocumentUploadPanel({ onApply }: DocumentUploadPanelProp
                 <Upload className="w-6 h-6 text-purple-400" />
               </div>
               <div>
-                <p className="text-sm font-medium text-white">
+                <p className="text-sm font-medium" style={{ color: 'var(--color-text)' }}>
                   기획안 또는 스토리보드 업로드
                 </p>
-                <p className="text-xs text-muted-foreground mt-1">
+                <p className="text-xs mt-1" style={{ color: 'var(--color-text-sub)' }}>
                   PDF, TXT, DOCX, 이미지(PNG/JPG) 파일을 드래그하거나 클릭하여 업로드
                 </p>
               </div>
@@ -194,15 +194,16 @@ export default function DocumentUploadPanel({ onApply }: DocumentUploadPanelProp
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -10 }}
-            className="border border-border rounded-2xl p-6 bg-card"
+            className="border border-border rounded-2xl p-6"
+            style={{ background: 'var(--color-surface)' }}
           >
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-lg bg-purple-500/10 flex items-center justify-center">
                 <Loader2 className="w-5 h-5 text-purple-400 animate-spin" />
               </div>
               <div className="flex-1">
-                <p className="text-sm font-medium text-white">문서 분석 중...</p>
-                <p className="text-xs text-muted-foreground mt-0.5">
+                <p className="text-sm font-medium" style={{ color: 'var(--color-text)' }}>문서 분석 중...</p>
+                <p className="text-xs mt-0.5" style={{ color: 'var(--color-text-sub)' }}>
                   {file.name} ({(file.size / 1024).toFixed(1)}KB)
                 </p>
               </div>
@@ -231,9 +232,9 @@ export default function DocumentUploadPanel({ onApply }: DocumentUploadPanelProp
               <XCircle className="w-5 h-5 text-red-400 mt-0.5 shrink-0" />
               <div className="flex-1">
                 <p className="text-sm font-medium text-red-400">분석 실패</p>
-                <p className="text-xs text-muted-foreground mt-1">{error}</p>
+                <p className="text-xs mt-1" style={{ color: 'var(--color-text-sub)' }}>{error}</p>
               </div>
-              <button onClick={reset} className="text-muted-foreground hover:text-white">
+              <button onClick={reset} style={{ color: 'var(--color-text-sub)' }}>
                 <X className="w-4 h-4" />
               </button>
             </div>
@@ -253,7 +254,8 @@ export default function DocumentUploadPanel({ onApply }: DocumentUploadPanelProp
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -10 }}
-            className="border border-green-500/30 rounded-2xl bg-card overflow-hidden"
+            className="border border-green-500/30 rounded-2xl overflow-hidden"
+            style={{ background: 'var(--color-surface)' }}
           >
             {/* Header */}
             <div className="p-4 border-b border-border flex items-center gap-3">
@@ -262,16 +264,16 @@ export default function DocumentUploadPanel({ onApply }: DocumentUploadPanelProp
               </div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
-                  <p className="text-sm font-medium text-white truncate">{file.name}</p>
+                  <p className="text-sm font-medium truncate" style={{ color: 'var(--color-text)' }}>{file.name}</p>
                   <span className="px-2 py-0.5 rounded-full bg-purple-500/15 text-[10px] font-medium text-purple-400 shrink-0">
                     {parsed.documentType}
                   </span>
                 </div>
-                <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1">
+                <p className="text-xs mt-0.5 line-clamp-1" style={{ color: 'var(--color-text-sub)' }}>
                   {parsed.summary}
                 </p>
               </div>
-              <button onClick={reset} className="text-muted-foreground hover:text-white shrink-0">
+              <button onClick={reset} className="shrink-0" style={{ color: 'var(--color-text-sub)' }}>
                 <X className="w-4 h-4" />
               </button>
             </div>
@@ -279,7 +281,7 @@ export default function DocumentUploadPanel({ onApply }: DocumentUploadPanelProp
             {/* Checklist */}
             <div className="p-4">
               <div className="flex items-center justify-between mb-3">
-                <p className="text-xs font-medium text-muted-foreground">
+                <p className="text-xs font-medium" style={{ color: 'var(--color-text-sub)' }}>
                   인식된 항목 ({foundCount}/{totalCount})
                 </p>
                 <div className="h-1.5 w-24 rounded-full bg-accent overflow-hidden">
@@ -297,8 +299,9 @@ export default function DocumentUploadPanel({ onApply }: DocumentUploadPanelProp
                     className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs ${
                       found
                         ? 'bg-green-500/10 text-green-400'
-                        : 'bg-accent/50 text-muted-foreground'
+                        : 'bg-accent/50'
                     }`}
+                    style={!found ? { color: 'var(--color-text-sub)' } : undefined}
                   >
                     {found ? (
                       <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
@@ -316,7 +319,8 @@ export default function DocumentUploadPanel({ onApply }: DocumentUploadPanelProp
               <div className="border-t border-border">
                 <button
                   onClick={() => setShowDetails(!showDetails)}
-                  className="w-full px-4 py-2.5 flex items-center justify-between text-xs text-muted-foreground hover:text-white transition-colors"
+                  className="w-full px-4 py-2.5 flex items-center justify-between text-xs transition-colors"
+                  style={{ color: 'var(--color-text-sub)' }}
                 >
                   <span>상세 분석 결과 보기</span>
                   {showDetails ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
@@ -334,11 +338,11 @@ export default function DocumentUploadPanel({ onApply }: DocumentUploadPanelProp
                         {/* Synopsis */}
                         {parsed.synopsis && (
                           <div>
-                            <div className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground mb-1.5">
+                            <div className="flex items-center gap-1.5 text-xs font-medium mb-1.5" style={{ color: 'var(--color-text-sub)' }}>
                               <BookOpen className="w-3.5 h-3.5" />
                               시놉시스
                             </div>
-                            <p className="text-xs text-white/80 leading-relaxed bg-accent/50 p-3 rounded-lg">
+                            <p className="text-xs leading-relaxed bg-accent/50 p-3 rounded-lg" style={{ color: 'var(--color-text)' }}>
                               {parsed.synopsis}
                             </p>
                           </div>
@@ -347,7 +351,7 @@ export default function DocumentUploadPanel({ onApply }: DocumentUploadPanelProp
                         {/* Characters */}
                         {parsed.characters.length > 0 && (
                           <div>
-                            <div className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground mb-1.5">
+                            <div className="flex items-center gap-1.5 text-xs font-medium mb-1.5" style={{ color: 'var(--color-text-sub)' }}>
                               <Users className="w-3.5 h-3.5" />
                               캐릭터 ({parsed.characters.length}명)
                             </div>
@@ -358,8 +362,8 @@ export default function DocumentUploadPanel({ onApply }: DocumentUploadPanelProp
                                     {c.name[0]}
                                   </div>
                                   <div>
-                                    <p className="text-xs font-medium text-white">{c.name}</p>
-                                    <p className="text-[11px] text-muted-foreground">{c.role}</p>
+                                    <p className="text-xs font-medium" style={{ color: 'var(--color-text)' }}>{c.name}</p>
+                                    <p className="text-[11px]" style={{ color: 'var(--color-text-sub)' }}>{c.role}</p>
                                   </div>
                                 </div>
                               ))}
@@ -370,7 +374,7 @@ export default function DocumentUploadPanel({ onApply }: DocumentUploadPanelProp
                         {/* Episodes */}
                         {parsed.episodes.length > 0 && (
                           <div>
-                            <div className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground mb-1.5">
+                            <div className="flex items-center gap-1.5 text-xs font-medium mb-1.5" style={{ color: 'var(--color-text-sub)' }}>
                               <Film className="w-3.5 h-3.5" />
                               에피소드 ({parsed.episodes.length}화)
                             </div>
@@ -381,9 +385,9 @@ export default function DocumentUploadPanel({ onApply }: DocumentUploadPanelProp
                                     {ep.number}
                                   </span>
                                   <div className="min-w-0">
-                                    <p className="text-xs text-white truncate">{ep.title}</p>
+                                    <p className="text-xs truncate" style={{ color: 'var(--color-text)' }}>{ep.title}</p>
                                     {ep.synopsis && (
-                                      <p className="text-[11px] text-muted-foreground truncate">{ep.synopsis}</p>
+                                      <p className="text-[11px] truncate" style={{ color: 'var(--color-text-sub)' }}>{ep.synopsis}</p>
                                     )}
                                   </div>
                                 </div>

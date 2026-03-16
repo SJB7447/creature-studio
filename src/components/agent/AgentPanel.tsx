@@ -38,10 +38,10 @@ function StepItem({ step }: { step: AgentStep }) {
           step.status === 'running' ? 'text-blue-400 agent-running' :
           step.status === 'done' ? 'text-green-400' :
           step.status === 'error' ? 'text-red-400' :
-          'text-muted-foreground'
-        }`}>{step.label}</p>
+          ''
+        }`} style={step.status === 'pending' ? { color: 'var(--color-text-sub)' } : undefined}>{step.label}</p>
         {step.result && step.status === 'done' && (
-          <p className="text-xs text-muted-foreground mt-0.5">{step.result}</p>
+          <p className="text-xs mt-0.5" style={{ color: 'var(--color-text-sub)' }}>{step.result}</p>
         )}
         {step.error && (
           <p className="text-xs text-red-400 mt-0.5">{step.error}</p>
@@ -159,9 +159,9 @@ export function AgentPanel({ scene, project, characters, projectId, episodeId, s
           <div className="w-8 h-8 rounded-lg bg-purple-500/20 flex items-center justify-center">
             <Bot className="w-4 h-4 text-purple-400" />
           </div>
-          <h2 className="font-medium text-white">SceneDirector Agent</h2>
+          <h2 className="font-medium" style={{ color: 'var(--color-text)' }}>SceneDirector Agent</h2>
         </div>
-        <p className="text-sm text-muted-foreground leading-relaxed">
+        <p className="text-sm leading-relaxed" style={{ color: 'var(--color-text-sub)' }}>
           씬 데이터와 프로젝트 컨텍스트를 분석해 연출 스크립트, 이미지 프롬프트 (MJ/Imagen), 영상 프롬프트 (Veo/Sora/Runway), 스토리보드를 자동 생성합니다. 7단계 파이프라인으로 품질 검수까지 수행합니다.
         </p>
       </div>
@@ -199,17 +199,17 @@ export function AgentPanel({ scene, project, characters, projectId, episodeId, s
 
       {/* Steps */}
       {steps.length > 0 && (
-        <div className="rounded-xl border border-border bg-card overflow-hidden">
+        <div className="rounded-xl border border-border overflow-hidden" style={{ background: 'var(--color-surface)' }}>
           <button
             onClick={() => setExpanded(!expanded)}
             className="w-full flex items-center justify-between p-4 hover:bg-accent/30 transition-colors"
           >
             <div className="flex items-center gap-2">
-              <span className="text-sm font-medium text-white">에이전트 실행 로그</span>
+              <span className="text-sm font-medium" style={{ color: 'var(--color-text)' }}>에이전트 실행 로그</span>
               {isRunning && <Loader2 className="w-3.5 h-3.5 text-blue-400 animate-spin" />}
               {!isRunning && result && <CheckCircle className="w-3.5 h-3.5 text-green-400" />}
             </div>
-            {expanded ? <ChevronUp className="w-4 h-4 text-muted-foreground" /> : <ChevronDown className="w-4 h-4 text-muted-foreground" />}
+            {expanded ? <ChevronUp className="w-4 h-4" style={{ color: 'var(--color-text-sub)' }} /> : <ChevronDown className="w-4 h-4" style={{ color: 'var(--color-text-sub)' }} />}
           </button>
 
           <AnimatePresence>
@@ -241,24 +241,24 @@ export function AgentPanel({ scene, project, characters, projectId, episodeId, s
             <span className="text-sm font-medium text-green-400">생성 완료</span>
           </div>
           <div className="grid grid-cols-2 gap-3 text-xs">
-            <div className="p-2 rounded-lg bg-card">
-              <p className="text-muted-foreground mb-1">연출 스크립트</p>
-              <p className="text-white line-clamp-2">{result.directorScript.substring(0, 100)}...</p>
+            <div className="p-2 rounded-lg" style={{ background: 'var(--color-surface)' }}>
+              <p className="mb-1" style={{ color: 'var(--color-text-sub)' }}>연출 스크립트</p>
+              <p className="line-clamp-2" style={{ color: 'var(--color-text)' }}>{result.directorScript.substring(0, 100)}...</p>
             </div>
-            <div className="p-2 rounded-lg bg-card">
-              <p className="text-muted-foreground mb-1">이미지 프롬프트 (기본)</p>
-              <p className="text-white line-clamp-2">{result.imagePrompts.base.substring(0, 100)}...</p>
+            <div className="p-2 rounded-lg" style={{ background: 'var(--color-surface)' }}>
+              <p className="mb-1" style={{ color: 'var(--color-text-sub)' }}>이미지 프롬프트 (기본)</p>
+              <p className="line-clamp-2" style={{ color: 'var(--color-text)' }}>{result.imagePrompts.base.substring(0, 100)}...</p>
             </div>
-            <div className="p-2 rounded-lg bg-card">
-              <p className="text-muted-foreground mb-1">스토리보드</p>
-              <p className="text-white">{result.storyboardFrames.length}컷 생성됨</p>
+            <div className="p-2 rounded-lg" style={{ background: 'var(--color-surface)' }}>
+              <p className="mb-1" style={{ color: 'var(--color-text-sub)' }}>스토리보드</p>
+              <p style={{ color: 'var(--color-text)' }}>{result.storyboardFrames.length}컷 생성됨</p>
             </div>
-            <div className="p-2 rounded-lg bg-card">
-              <p className="text-muted-foreground mb-1">품질 검수</p>
-              <p className="text-white line-clamp-2">{result.agentAnalysis.substring(0, 80)}...</p>
+            <div className="p-2 rounded-lg" style={{ background: 'var(--color-surface)' }}>
+              <p className="mb-1" style={{ color: 'var(--color-text-sub)' }}>품질 검수</p>
+              <p className="line-clamp-2" style={{ color: 'var(--color-text)' }}>{result.agentAnalysis.substring(0, 80)}...</p>
             </div>
           </div>
-          <p className="text-xs text-muted-foreground mt-3">"에셋 저장" 버튼을 클릭해 Firestore에 저장하세요.</p>
+          <p className="text-xs mt-3" style={{ color: 'var(--color-text-sub)' }}>"에셋 저장" 버튼을 클릭해 Firestore에 저장하세요.</p>
         </motion.div>
       )}
     </div>

@@ -31,7 +31,7 @@ export function EpisodeCard({ episode, projectId }: { episode: Episode; projectI
 
   return (
     <Link href={`/projects/${projectId}/episodes/${episode.id}`}>
-      <div className="group flex items-center gap-4 p-4 rounded-xl border border-border bg-card hover:border-purple-500/40 hover:bg-accent/30 transition-all cursor-pointer">
+      <div className="group flex items-center gap-4 p-4 rounded-xl border hover:border-purple-500/40 hover:bg-accent/30 transition-all cursor-pointer" style={{ background: 'var(--color-surface)', borderColor: 'var(--color-border)' }}>
         {/* Episode number */}
         <div className="w-12 h-12 rounded-lg bg-accent flex items-center justify-center shrink-0">
           <span className="text-lg font-bold text-purple-400">E{episode.number}</span>
@@ -40,18 +40,18 @@ export function EpisodeCard({ episode, projectId }: { episode: Episode; projectI
         {/* Info */}
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-0.5">
-            <h3 className="font-medium text-white truncate">{episode.title}</h3>
+            <h3 className="font-medium truncate" style={{ color: 'var(--color-text)' }}>{episode.title}</h3>
             <span className={cn('text-xs px-2 py-0.5 rounded-full shrink-0', STATUS_COLORS[episode.status])}>
               {EPISODE_STATUS_LABELS[episode.status]}
             </span>
           </div>
-          <div className="flex items-center gap-3 text-xs text-muted-foreground">
+          <div className="flex items-center gap-3 text-xs" style={{ color: 'var(--color-text-sub)' }}>
             <span>감정: {episode.targetEmotion}</span>
             {episode.runtime && <span>· {episode.runtime}</span>}
             {episode.sceneCount > 0 && <span>· 씬 {episode.sceneCount}개</span>}
           </div>
           {episode.coreMessage && (
-            <p className="text-xs text-muted-foreground/70 mt-0.5 truncate">💬 {episode.coreMessage}</p>
+            <p className="text-xs mt-0.5 truncate" style={{ color: 'var(--color-text-sub)', opacity: 0.7 }}>💬 {episode.coreMessage}</p>
           )}
         </div>
 
@@ -62,10 +62,10 @@ export function EpisodeCard({ episode, projectId }: { episode: Episode; projectI
               onClick={(e) => { e.preventDefault(); e.stopPropagation(); setMenuOpen(!menuOpen) }}
               className="p-1.5 rounded-md opacity-0 group-hover:opacity-100 hover:bg-accent transition-all"
             >
-              <MoreHorizontal className="w-4 h-4 text-muted-foreground" />
+              <MoreHorizontal className="w-4 h-4" style={{ color: 'var(--color-text-sub)' }} />
             </button>
             {menuOpen && (
-              <div className="absolute right-0 top-full mt-1 w-36 bg-card border border-border rounded-lg shadow-xl z-10">
+              <div className="absolute right-0 top-full mt-1 w-36 border rounded-lg shadow-xl z-10" style={{ background: 'var(--color-surface)', borderColor: 'var(--color-border)' }}>
                 <div className="p-1">
                   <button
                     onClick={(e) => {
@@ -81,7 +81,7 @@ export function EpisodeCard({ episode, projectId }: { episode: Episode; projectI
               </div>
             )}
           </div>
-          <ChevronRight className="w-4 h-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+          <ChevronRight className="w-4 h-4 opacity-0 group-hover:opacity-100 transition-opacity" style={{ color: 'var(--color-text-sub)' }} />
         </div>
       </div>
     </Link>

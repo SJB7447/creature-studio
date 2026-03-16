@@ -10,7 +10,8 @@ export function NewEpisodeButton({ projectId }: { projectId: string }) {
     <>
       <button
         onClick={() => setOpen(true)}
-        className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-accent hover:bg-accent/80 text-white text-sm transition-colors border border-border"
+        className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-accent hover:bg-accent/80 text-sm transition-colors border border-border"
+        style={{ color: 'var(--color-text)' }}
       >
         <Plus className="w-3.5 h-3.5" />
         새 에피소드

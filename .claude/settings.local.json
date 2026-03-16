@@ -2,7 +2,19 @@
   "permissions": {
     "allow": [
       "Bash(npm install:*)",
-      "Bash(npx tsc:*)"
+      "Bash(npx tsc:*)",
+      "Bash(npm run:*)",
+      "Bash(npx next:*)",
+      "Bash(vercel deploy:*)",
+      "Bash(npx vercel:*)",
+      "Bash(firebase projects:list)",
+      "Bash(firebase firestore:indexes --project video-project-e9282)",
+      "Bash(firebase firestore:databases:list --project video-project-e9282)",
+      "Bash(firebase firestore:export-rules --project video-project-e9282)",
+      "Bash(firebase security:rules:get --project video-project-e9282)",
+      "Bash(node -e \":*)",
+      "Bash(firebase firestore:*)",
+      "Bash(firebase deploy:*)"
     ]
   }
 }

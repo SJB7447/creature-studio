@@ -63,68 +63,76 @@ export function NewEpisodeDialog({ open, onClose, projectId }: {
         <motion.div
           initial={{ opacity: 0, scale: 0.95, y: 20 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
-          className="relative z-10 w-full max-w-lg mx-4 bg-card border border-border rounded-2xl shadow-2xl"
+          className="relative z-10 w-full max-w-lg mx-4 border border-border rounded-2xl shadow-2xl"
+          style={{ background: 'var(--color-surface)' }}
         >
           <div className="flex items-center justify-between p-5 border-b border-border">
-            <h2 className="font-semibold text-white">새 에피소드</h2>
+            <h2 className="font-semibold" style={{ color: 'var(--color-text)' }}>새 에피소드</h2>
             <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-accent">
-              <X className="w-4 h-4 text-muted-foreground" />
+              <X className="w-4 h-4" style={{ color: 'var(--color-text-sub)' }} />
             </button>
           </div>
 
           <form onSubmit={handleSubmit(d => createMutation.mutate(d))} className="p-5 space-y-4">
             <div className="grid grid-cols-3 gap-3">
               <div>
-                <label className="block text-xs text-muted-foreground mb-1.5">화수</label>
+                <label className="block text-xs mb-1.5" style={{ color: 'var(--color-text-sub)' }}>화수</label>
                 <input type="number" {...register('number', { min: 1 })}
-                  className="w-full px-3 py-2 rounded-lg bg-accent border border-border text-white text-sm focus:outline-none focus:border-purple-500"
+                  className="w-full px-3 py-2 rounded-lg text-sm focus:outline-none focus:border-purple-500"
+                  style={{ background: 'var(--color-surface-2)', borderColor: 'var(--color-border)', color: 'var(--color-text)', borderWidth: '1px', borderStyle: 'solid' }}
                 />
               </div>
               <div className="col-span-2">
-                <label className="block text-xs text-muted-foreground mb-1.5">에피소드 제목 *</label>
+                <label className="block text-xs mb-1.5" style={{ color: 'var(--color-text-sub)' }}>에피소드 제목 *</label>
                 <input {...register('title', { required: true })}
                   placeholder="비를 뿌리는 사자야"
-                  className="w-full px-3 py-2 rounded-lg bg-accent border border-border text-white text-sm placeholder:text-muted-foreground focus:outline-none focus:border-purple-500"
+                  className="w-full px-3 py-2 rounded-lg text-sm placeholder:text-muted-foreground focus:outline-none focus:border-purple-500"
+                  style={{ background: 'var(--color-surface-2)', borderColor: 'var(--color-border)', color: 'var(--color-text)', borderWidth: '1px', borderStyle: 'solid' }}
                 />
               </div>
             </div>
 
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="block text-xs text-muted-foreground mb-1.5">타겟 감정</label>
+                <label className="block text-xs mb-1.5" style={{ color: 'var(--color-text-sub)' }}>타겟 감정</label>
                 <input {...register('targetEmotion')}
                   placeholder="슬픔 / 억눌린 감정"
-                  className="w-full px-3 py-2 rounded-lg bg-accent border border-border text-white text-sm placeholder:text-muted-foreground focus:outline-none focus:border-purple-500"
+                  className="w-full px-3 py-2 rounded-lg text-sm placeholder:text-muted-foreground focus:outline-none focus:border-purple-500"
+                  style={{ background: 'var(--color-surface-2)', borderColor: 'var(--color-border)', color: 'var(--color-text)', borderWidth: '1px', borderStyle: 'solid' }}
                 />
               </div>
               <div>
-                <label className="block text-xs text-muted-foreground mb-1.5">러닝타임</label>
+                <label className="block text-xs mb-1.5" style={{ color: 'var(--color-text-sub)' }}>러닝타임</label>
                 <input {...register('runtime')}
                   placeholder="4분 30초"
-                  className="w-full px-3 py-2 rounded-lg bg-accent border border-border text-white text-sm placeholder:text-muted-foreground focus:outline-none focus:border-purple-500"
+                  className="w-full px-3 py-2 rounded-lg text-sm placeholder:text-muted-foreground focus:outline-none focus:border-purple-500"
+                  style={{ background: 'var(--color-surface-2)', borderColor: 'var(--color-border)', color: 'var(--color-text)', borderWidth: '1px', borderStyle: 'solid' }}
                 />
               </div>
             </div>
 
             <div>
-              <label className="block text-xs text-muted-foreground mb-1.5">핵심 메시지</label>
+              <label className="block text-xs mb-1.5" style={{ color: 'var(--color-text-sub)' }}>핵심 메시지</label>
               <input {...register('coreMessage')}
                 placeholder="슬플 때 울어도 괜찮아"
-                className="w-full px-3 py-2 rounded-lg bg-accent border border-border text-white text-sm placeholder:text-muted-foreground focus:outline-none focus:border-purple-500"
+                className="w-full px-3 py-2 rounded-lg text-sm placeholder:text-muted-foreground focus:outline-none focus:border-purple-500"
+                style={{ background: 'var(--color-surface-2)', borderColor: 'var(--color-border)', color: 'var(--color-text)', borderWidth: '1px', borderStyle: 'solid' }}
               />
             </div>
 
             <div>
-              <label className="block text-xs text-muted-foreground mb-1.5">시놉시스</label>
+              <label className="block text-xs mb-1.5" style={{ color: 'var(--color-text-sub)' }}>시놉시스</label>
               <textarea {...register('synopsis')} rows={3}
                 placeholder="에피소드 줄거리를 입력하세요..."
-                className="w-full px-3 py-2 rounded-lg bg-accent border border-border text-white text-sm placeholder:text-muted-foreground focus:outline-none focus:border-purple-500 resize-none"
+                className="w-full px-3 py-2 rounded-lg text-sm placeholder:text-muted-foreground focus:outline-none focus:border-purple-500 resize-none"
+                style={{ background: 'var(--color-surface-2)', borderColor: 'var(--color-border)', color: 'var(--color-text)', borderWidth: '1px', borderStyle: 'solid' }}
               />
             </div>
 
             <div className="flex gap-3 pt-1">
               <button type="button" onClick={onClose}
-                className="flex-1 py-2.5 rounded-lg border border-border text-muted-foreground hover:text-white hover:bg-accent text-sm transition-colors"
+                className="flex-1 py-2.5 rounded-lg border border-border hover:bg-accent text-sm transition-colors"
+                style={{ color: 'var(--color-text-sub)' }}
               >취소</button>
               <button type="submit" disabled={createMutation.isPending}
                 className="flex-1 py-2.5 rounded-lg bg-purple-600 hover:bg-purple-500 text-white font-medium text-sm transition-colors disabled:opacity-60"

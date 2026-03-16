@@ -83,9 +83,11 @@ export function NewSceneDialog({ open, onClose, projectId, episodeId }: {
 
   if (!open) return null
 
-  const inputCls = "w-full px-3 py-2 rounded-lg bg-accent border border-border text-white text-sm placeholder:text-muted-foreground focus:outline-none focus:border-purple-500"
-  const selectCls = "w-full px-3 py-2 rounded-lg bg-accent border border-border text-white text-sm focus:outline-none focus:border-purple-500"
-  const labelCls = "block text-xs text-muted-foreground mb-1.5"
+  const inputStyle = { background: 'var(--color-surface-2)', borderColor: 'var(--color-border)', color: 'var(--color-text)', borderWidth: '1px' as const, borderStyle: 'solid' as const }
+  const inputCls = "w-full px-3 py-2 rounded-lg text-sm placeholder:text-muted-foreground focus:outline-none focus:border-purple-500"
+  const selectCls = "w-full px-3 py-2 rounded-lg text-sm focus:outline-none focus:border-purple-500"
+  const labelStyle = { color: 'var(--color-text-sub)' }
+  const labelCls = "block text-xs mb-1.5"
 
   return (
     <AnimatePresence>
@@ -99,12 +101,13 @@ export function NewSceneDialog({ open, onClose, projectId, episodeId }: {
         <motion.div
           initial={{ opacity: 0, scale: 0.95, y: 20 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
-          className="relative z-10 w-full max-w-2xl mx-4 bg-card border border-border rounded-2xl shadow-2xl max-h-[90vh] overflow-y-auto"
+          className="relative z-10 w-full max-w-2xl mx-4 border border-border rounded-2xl shadow-2xl max-h-[90vh] overflow-y-auto"
+          style={{ background: 'var(--color-surface)' }}
         >
           <div className="flex items-center justify-between p-5 border-b border-border">
-            <h2 className="font-semibold text-white">새 씬 추가</h2>
+            <h2 className="font-semibold" style={{ color: 'var(--color-text)' }}>새 씬 추가</h2>
             <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-accent">
-              <X className="w-4 h-4 text-muted-foreground" />
+              <X className="w-4 h-4" style={{ color: 'var(--color-text-sub)' }} />
             </button>
           </div>
 
@@ -112,34 +115,34 @@ export function NewSceneDialog({ open, onClose, projectId, episodeId }: {
             {/* Basic */}
             <div className="grid grid-cols-4 gap-3">
               <div>
-                <label className={labelCls}>씬 번호</label>
-                <input type="number" {...register('number', { min: 1 })} className={inputCls} />
+                <label className={labelCls} style={labelStyle}>씬 번호</label>
+                <input type="number" {...register('number', { min: 1 })} className={inputCls} style={inputStyle} />
               </div>
               <div className="col-span-3">
-                <label className={labelCls}>씬 제목 *</label>
-                <input {...register('title', { required: true })} placeholder="병원 입구 — 사자 등장" className={inputCls} />
+                <label className={labelCls} style={labelStyle}>씬 제목 *</label>
+                <input {...register('title', { required: true })} placeholder="병원 입구 — 사자 등장" className={inputCls} style={inputStyle} />
               </div>
             </div>
 
             <div className="grid grid-cols-3 gap-3">
               <div>
-                <label className={labelCls}>장소</label>
-                <input {...register('location')} placeholder="병원 대기실" className={inputCls} />
+                <label className={labelCls} style={labelStyle}>장소</label>
+                <input {...register('location')} placeholder="병원 대기실" className={inputCls} style={inputStyle} />
               </div>
               <div>
-                <label className={labelCls}>시작 시간</label>
-                <input {...register('timeStart')} placeholder="00:00" className={inputCls} />
+                <label className={labelCls} style={labelStyle}>시작 시간</label>
+                <input {...register('timeStart')} placeholder="00:00" className={inputCls} style={inputStyle} />
               </div>
               <div>
-                <label className={labelCls}>종료 시간</label>
-                <input {...register('timeEnd')} placeholder="00:30" className={inputCls} />
+                <label className={labelCls} style={labelStyle}>종료 시간</label>
+                <input {...register('timeEnd')} placeholder="00:30" className={inputCls} style={inputStyle} />
               </div>
             </div>
 
             <div className="grid grid-cols-3 gap-3">
               <div>
-                <label className={labelCls}>시간대</label>
-                <select {...register('timeOfDay')} className={selectCls}>
+                <label className={labelCls} style={labelStyle}>시간대</label>
+                <select {...register('timeOfDay')} className={selectCls} style={inputStyle}>
                   <option value="morning">아침</option>
                   <option value="afternoon">낮</option>
                   <option value="evening">저녁</option>
@@ -148,8 +151,8 @@ export function NewSceneDialog({ open, onClose, projectId, episodeId }: {
                 </select>
               </div>
               <div>
-                <label className={labelCls}>카메라 무브</label>
-                <select {...register('cameraMovement')} className={selectCls}>
+                <label className={labelCls} style={labelStyle}>카메라 무브</label>
+                <select {...register('cameraMovement')} className={selectCls} style={inputStyle}>
                   <option value="static">고정</option>
                   <option value="pan">팬</option>
                   <option value="tilt">틸트</option>
@@ -160,8 +163,8 @@ export function NewSceneDialog({ open, onClose, projectId, episodeId }: {
                 </select>
               </div>
               <div>
-                <label className={labelCls}>카메라 앵글</label>
-                <select {...register('cameraAngle')} className={selectCls}>
+                <label className={labelCls} style={labelStyle}>카메라 앵글</label>
+                <select {...register('cameraAngle')} className={selectCls} style={inputStyle}>
                   <option value="eye_level">아이레벨</option>
                   <option value="high_angle">하이앵글</option>
                   <option value="low_angle">로우앵글</option>
@@ -173,38 +176,38 @@ export function NewSceneDialog({ open, onClose, projectId, episodeId }: {
 
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className={labelCls}>조명</label>
-                <input {...register('lighting')} placeholder="부드러운 자연광" className={inputCls} />
+                <label className={labelCls} style={labelStyle}>조명</label>
+                <input {...register('lighting')} placeholder="부드러운 자연광" className={inputCls} style={inputStyle} />
               </div>
               <div>
-                <label className={labelCls}>색보정</label>
-                <input {...register('colorGrade')} placeholder="웜 톤, 파스텔" className={inputCls} />
+                <label className={labelCls} style={labelStyle}>색보정</label>
+                <input {...register('colorGrade')} placeholder="웜 톤, 파스텔" className={inputCls} style={inputStyle} />
               </div>
             </div>
 
             <div>
-              <label className={labelCls}>감정 키워드 (쉼표 구분)</label>
-              <input {...register('emotionKeywords')} placeholder="슬픔, 억눌림, 해소" className={inputCls} />
+              <label className={labelCls} style={labelStyle}>감정 키워드 (쉼표 구분)</label>
+              <input {...register('emotionKeywords')} placeholder="슬픔, 억눌림, 해소" className={inputCls} style={inputStyle} />
             </div>
 
             <div>
-              <label className={labelCls}>배경 묘사</label>
-              <textarea {...register('backgroundDescription')} rows={2} placeholder="배경 상세 묘사..." className={`${inputCls} resize-none`} />
+              <label className={labelCls} style={labelStyle}>배경 묘사</label>
+              <textarea {...register('backgroundDescription')} rows={2} placeholder="배경 상세 묘사..." className={`${inputCls} resize-none`} style={inputStyle} />
             </div>
 
             <div>
-              <label className={labelCls}>액션 (화면 지문)</label>
-              <textarea {...register('actionDescription')} rows={2} placeholder="씬에서 일어나는 일..." className={`${inputCls} resize-none`} />
+              <label className={labelCls} style={labelStyle}>액션 (화면 지문)</label>
+              <textarea {...register('actionDescription')} rows={2} placeholder="씬에서 일어나는 일..." className={`${inputCls} resize-none`} style={inputStyle} />
             </div>
 
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className={labelCls}>사운드 디자인</label>
-                <input {...register('soundDesign')} placeholder="잔잔한 피아노 BGM..." className={inputCls} />
+                <label className={labelCls} style={labelStyle}>사운드 디자인</label>
+                <input {...register('soundDesign')} placeholder="잔잔한 피아노 BGM..." className={inputCls} style={inputStyle} />
               </div>
               <div>
-                <label className={labelCls}>연출 노트</label>
-                <input {...register('directorNote')} placeholder="감독 주요 의도..." className={inputCls} />
+                <label className={labelCls} style={labelStyle}>연출 노트</label>
+                <input {...register('directorNote')} placeholder="감독 주요 의도..." className={inputCls} style={inputStyle} />
               </div>
             </div>
 
@@ -212,14 +215,15 @@ export function NewSceneDialog({ open, onClose, projectId, episodeId }: {
             <div className="flex items-center gap-3 p-3 rounded-lg border border-purple-500/30 bg-purple-500/5">
               <input type="checkbox" {...register('isAITransformScene')} id="isTransform"
                 className="w-4 h-4 rounded border-purple-500 accent-purple-600" />
-              <label htmlFor="isTransform" className="text-sm text-white cursor-pointer">
+              <label htmlFor="isTransform" className="text-sm cursor-pointer" style={{ color: 'var(--color-text)' }}>
                 AI 변환 씬 (클레이 세계 → 현실 등 특수 변환)
               </label>
             </div>
 
             <div className="flex gap-3 pt-1">
               <button type="button" onClick={onClose}
-                className="flex-1 py-2.5 rounded-lg border border-border text-muted-foreground hover:text-white hover:bg-accent text-sm transition-colors"
+                className="flex-1 py-2.5 rounded-lg border border-border hover:bg-accent text-sm transition-colors"
+                style={{ color: 'var(--color-text-sub)' }}
               >취소</button>
               <button type="submit" disabled={createMutation.isPending}
                 className="flex-1 py-2.5 rounded-lg bg-purple-600 hover:bg-purple-500 text-white font-medium text-sm transition-colors disabled:opacity-60"
