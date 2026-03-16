@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { cn } from '@/lib/utils'
-import { LayoutDashboard, Film, Users, Settings, LayoutGrid, Library, Download } from 'lucide-react'
+import { LayoutDashboard, Film, Users, Settings, LayoutGrid, Library, Download, Clapperboard } from 'lucide-react'
 import { useProjectStore } from '@/store/projectStore'
 
 const navItems = [
@@ -12,7 +12,7 @@ const navItems = [
 
 export function AppSidebar() {
   const pathname = usePathname()
-  const { currentProject, currentEpisode } = useProjectStore()
+  const { currentProject, currentEpisode, currentScene } = useProjectStore()
 
   const projectNav = currentProject ? [
     { href: `/projects/${currentProject.id}`, label: '에피소드', icon: Film },
@@ -23,12 +23,21 @@ export function AppSidebar() {
   ] : []
 
   const episodeNav = currentProject && currentEpisode ? [
+    ...(currentScene ? [{
+      href: `/projects/${currentProject.id}/episodes/${currentEpisode.id}/scenes/${currentScene.id}`,
+      label: '씬 에디터',
+      icon: Clapperboard,
+    }] : []),
     {
       href: `/projects/${currentProject.id}/episodes/${currentEpisode.id}/storyboard`,
       label: '스토리보드',
       icon: LayoutGrid,
     },
   ] : []
+
+  function isActive(href: string) {
+    return pathname === href || pathname.startsWith(href + '/')
+  }
 
   return (
     <aside className="w-56 border-r flex flex-col shrink-0" style={{ background: 'var(--color-surface)', borderColor: 'var(--color-border)' }}>
@@ -50,13 +59,13 @@ export function AppSidebar() {
             href={item.href}
             className={cn(
               'flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm transition-colors',
-              pathname === item.href
+              isActive(item.href)
                 ? 'font-medium'
                 : 'hover:bg-[var(--color-surface-2)]'
             )}
             style={{
-              background: pathname === item.href ? 'var(--color-surface-2)' : undefined,
-              color: pathname === item.href ? 'var(--color-primary-dark)' : 'var(--color-text-sub)',
+              background: isActive(item.href) ? 'var(--color-surface-2)' : undefined,
+              color: isActive(item.href) ? 'var(--color-primary-dark)' : 'var(--color-text-sub)',
             }}
           >
             <item.icon className="w-4 h-4" />
@@ -75,11 +84,11 @@ export function AppSidebar() {
                 href={item.href}
                 className={cn(
                   'flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm transition-colors',
-                  pathname === item.href ? 'font-medium' : 'hover:bg-[var(--color-surface-2)]'
+                  isActive(item.href) ? 'font-medium' : 'hover:bg-[var(--color-surface-2)]'
                 )}
                 style={{
-                  background: pathname === item.href ? 'var(--color-surface-2)' : undefined,
-                  color: pathname === item.href ? 'var(--color-primary-dark)' : 'var(--color-text-sub)',
+                  background: isActive(item.href) ? 'var(--color-surface-2)' : undefined,
+                  color: isActive(item.href) ? 'var(--color-primary-dark)' : 'var(--color-text-sub)',
                 }}
               >
                 <item.icon className="w-4 h-4" />
@@ -100,11 +109,11 @@ export function AppSidebar() {
                 href={item.href}
                 className={cn(
                   'flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm transition-colors',
-                  pathname === item.href ? 'font-medium' : 'hover:bg-[var(--color-surface-2)]'
+                  isActive(item.href) ? 'font-medium' : 'hover:bg-[var(--color-surface-2)]'
                 )}
                 style={{
-                  background: pathname === item.href ? 'var(--color-surface-2)' : undefined,
-                  color: pathname === item.href ? 'var(--color-primary-dark)' : 'var(--color-text-sub)',
+                  background: isActive(item.href) ? 'var(--color-surface-2)' : undefined,
+                  color: isActive(item.href) ? 'var(--color-primary-dark)' : 'var(--color-text-sub)',
                 }}
               >
                 <item.icon className="w-4 h-4" />
