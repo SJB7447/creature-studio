@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { signInWithRedirect } from 'firebase/auth'
+import { signInWithPopup } from 'firebase/auth'
 import { auth, googleProvider } from '@/lib/firebase'
 import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
@@ -14,7 +14,8 @@ export function LoginPage() {
   async function handleGoogleLogin() {
     try {
       setLoading(true)
-      await signInWithRedirect(auth, googleProvider)
+      await signInWithPopup(auth, googleProvider)
+      router.push('/dashboard')
     } catch (error: any) {
       toast.error('로그인 실패: ' + error.message)
     } finally {

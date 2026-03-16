@@ -2,7 +2,7 @@
 
 import { QueryClientProvider } from '@tanstack/react-query'
 import { useEffect, useRef } from 'react'
-import { onAuthStateChanged, getRedirectResult } from 'firebase/auth'
+import { onAuthStateChanged } from 'firebase/auth'
 import { auth } from '@/lib/firebase'
 import { useAuthStore } from '@/store/authStore'
 import { queryClient } from '@/lib/queryClient'
@@ -13,9 +13,6 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
   const seeded = useRef(false)
 
   useEffect(() => {
-    // Handle redirect result from signInWithRedirect
-    getRedirectResult(auth).catch(() => {})
-
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       if (firebaseUser) {
         setUser({
