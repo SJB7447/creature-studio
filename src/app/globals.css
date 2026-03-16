@@ -4,31 +4,41 @@
 
 @layer base {
   :root {
-    --background: 224 71% 4%;
-    --foreground: 213 31% 91%;
-    --card: 224 71% 4%;
-    --card-foreground: 213 31% 91%;
-    --popover: 224 71% 4%;
-    --popover-foreground: 213 31% 91%;
-    --primary: 210 40% 98%;
-    --primary-foreground: 222.2 47.4% 1.2%;
-    --secondary: 222.2 47.4% 11.2%;
-    --secondary-foreground: 210 40% 98%;
-    --muted: 223 47% 11%;
-    --muted-foreground: 215.4 16.3% 56.9%;
-    --accent: 216 34% 17%;
-    --accent-foreground: 210 40% 98%;
-    --destructive: 0 63% 31%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 216 34% 17%;
-    --input: 216 34% 17%;
-    --ring: 263.4 70% 50.4%;
-    --radius: 0.75rem;
+    /* ─── Design System ─────────────────────────── */
+    --color-bg: #FFFAF4;
+    --color-surface: #FFFFFF;
+    --color-surface-2: #FFF4EE;
+    --color-primary: #C4B5FD;
+    --color-primary-dark: #7C3AED;
+    --color-accent: #FBCFE8;
+    --color-accent-2: #BAE6FD;
+    --color-text: #374151;
+    --color-text-sub: #6B7280;
+    --color-border: #E5E7EB;
+    --color-agent: #F0FDF4;
+    --color-agent-border: #86EFAC;
 
-    /* Brand colors */
-    --brand-purple: 263 70% 60%;
-    --brand-blue: 217 91% 60%;
-    --brand-cyan: 188 86% 53%;
+    /* ─── Tailwind / shadcn mapping ─────────────── */
+    --background: 33 100% 98%;
+    --foreground: 220 13% 27%;
+    --card: 0 0% 100%;
+    --card-foreground: 220 13% 27%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 220 13% 27%;
+    --primary: 263 83% 58%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 253 96% 85%;
+    --secondary-foreground: 263 83% 58%;
+    --muted: 20 100% 96%;
+    --muted-foreground: 220 9% 46%;
+    --accent: 20 100% 96%;
+    --accent-foreground: 220 13% 27%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 216 12% 91%;
+    --input: 216 12% 91%;
+    --ring: 263 83% 58%;
+    --radius: 0.75rem;
   }
 }
 
@@ -39,31 +49,24 @@
   body {
     @apply bg-background text-foreground;
     font-feature-settings: "rlig" 1, "calt" 1;
+    min-width: 1280px;
   }
 }
 
-/* Custom scrollbar */
-::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
-}
-::-webkit-scrollbar-track {
-  background: hsl(var(--background));
-}
-::-webkit-scrollbar-thumb {
-  background: hsl(var(--border));
-  border-radius: 3px;
-}
-::-webkit-scrollbar-thumb:hover {
-  background: hsl(var(--muted-foreground));
-}
+/* Scrollbar */
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--color-border); border-radius: 10px; }
+::-webkit-scrollbar-thumb:hover { background: var(--color-text-sub); }
 
 /* Agent step animation */
 @keyframes pulse-glow {
   0%, 100% { opacity: 1; }
   50% { opacity: 0.5; }
 }
+.agent-running { animation: pulse-glow 1.5s ease-in-out infinite; }
 
-.agent-running {
-  animation: pulse-glow 1.5s ease-in-out infinite;
+/* Tag input */
+.tag-chip {
+  @apply inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium;
 }

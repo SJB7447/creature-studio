@@ -158,7 +158,8 @@ export interface Scene {
   updatedAt: Timestamp
 }
 
-export interface AgentStep {
+// Legacy step object (used in SSE streaming)
+export interface AgentStepInfo {
   id: string
   label: string
   status: 'pending' | 'running' | 'done' | 'error'
@@ -166,14 +167,64 @@ export interface AgentStep {
   error?: string
 }
 
+// New agent step union
+export type AgentStepName =
+  | 'idle'
+  | 'analyzing'       // Step 1
+  | 'characters'      // Step 2
+  | 'scripting'       // Step 3
+  | 'imagePrompt'     // Step 4
+  | 'videoPrompt'     // Step 5
+  | 'storyboard'      // Step 6
+  | 'validating'      // Step 7
+  | 'done'
+  | 'error'
+
+export interface AgentProgress {
+  step: AgentStepName
+  stepNumber: number   // 1~7
+  message: string
+  result?: any
+}
+
+export interface SceneAnalysis {
+  emotionFlow: string
+  narrativePosition: string
+  keyVisualMoment: string
+  technicalRequirements: string
+  childSafetyNotes: string
+  raw: string
+}
+
+export interface CharacterContext {
+  characterCount: number
+  context: string
+  characters: { name: string; role: string; appearance: string; keywords: string[] }[]
+}
+
+export interface ValidationResult {
+  styleCompliance: string
+  prohibitedCheck: string
+  keyElementReflection: string
+  recommendations: string
+  qualityGrade: 'A' | 'B' | 'C'
+  raw: string
+}
+
 export interface AgentResult {
+  analysis: SceneAnalysis
+  characterContext: CharacterContext
   directorScript: string
   imagePrompts: ImagePrompts
   videoPrompts: VideoPrompts
   storyboardFrames: StoryboardFrame[]
+  validation: ValidationResult
   agentAnalysis: string
-  steps: AgentStep[]
+  steps: AgentStepInfo[]
 }
+
+// Keep backward compat alias
+export type AgentStep = AgentStepInfo
 
 export type User = {
   uid: string

@@ -96,7 +96,15 @@ export function AgentPanel({ scene, project, characters, projectId, episodeId, s
         for (const line of lines) {
           const data = JSON.parse(line.slice(6))
 
-          if (data.type === 'step') {
+          if (data.type === 'progress') {
+            const p = data.progress
+            const idx = p.stepNumber - 1
+            setSteps(prev => prev.map((s, i) => {
+              if (i === idx) return { ...s, status: p.step === 'done' ? 'done' as const : p.step === 'error' ? 'error' as const : 'running' as const }
+              if (i < idx && s.status !== 'done' && s.status !== 'error') return { ...s, status: 'done' as const }
+              return s
+            }))
+          } else if (data.type === 'step') {
             setSteps(prev => prev.map(s => s.id === data.step.id ? data.step : s))
           } else if (data.type === 'result') {
             setResult(data.result)

@@ -6,7 +6,7 @@ import { useAuthStore } from '@/store/authStore'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 import { LogOut, ChevronDown } from 'lucide-react'
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { useProjectStore } from '@/store/projectStore'
 
 export function AppHeader() {
@@ -14,6 +14,15 @@ export function AppHeader() {
   const { currentProject } = useProjectStore()
   const router = useRouter()
   const [menuOpen, setMenuOpen] = useState(false)
+  const menuRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    function handleClick(e: MouseEvent) {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) setMenuOpen(false)
+    }
+    document.addEventListener('mousedown', handleClick)
+    return () => document.removeEventListener('mousedown', handleClick)
+  }, [])
 
   async function handleLogout() {
     try {
@@ -26,47 +35,44 @@ export function AppHeader() {
   }
 
   return (
-    <header className="h-16 border-b border-border flex items-center justify-between px-6 bg-card shrink-0">
+    <header className="h-14 border-b flex items-center justify-between px-6 shrink-0" style={{ background: 'var(--color-surface)', borderColor: 'var(--color-border)' }}>
       {/* Breadcrumb */}
       <div className="flex items-center gap-2 text-sm">
         {currentProject && (
           <>
-            <span className="text-muted-foreground">프로젝트</span>
-            <span className="text-muted-foreground">/</span>
-            <span className="text-white font-medium">{currentProject.title}</span>
+            <span style={{ color: 'var(--color-text-sub)' }}>프로젝트</span>
+            <span style={{ color: 'var(--color-border)' }}>/</span>
+            <span className="font-medium" style={{ color: 'var(--color-text)' }}>{currentProject.title}</span>
           </>
         )}
       </div>
 
       {/* User menu */}
-      <div className="relative">
+      <div className="relative" ref={menuRef}>
         <button
           onClick={() => setMenuOpen(!menuOpen)}
-          className="flex items-center gap-2.5 py-1.5 px-3 rounded-lg hover:bg-accent transition-colors"
+          className="flex items-center gap-2.5 py-1.5 px-3 rounded-lg hover:bg-[var(--color-surface-2)] transition-colors"
         >
           {user?.photoURL ? (
-            <img
-              src={user.photoURL}
-              alt={user.displayName || ''}
-              className="w-7 h-7 rounded-full"
-            />
+            <img src={user.photoURL} alt={user.displayName || ''} className="w-7 h-7 rounded-full" />
           ) : (
-            <div className="w-7 h-7 rounded-full bg-purple-500 flex items-center justify-center text-white text-xs font-bold">
+            <div className="w-7 h-7 rounded-full flex items-center justify-center text-white text-xs font-bold" style={{ background: 'var(--color-primary-dark)' }}>
               {user?.displayName?.[0] || 'U'}
             </div>
           )}
-          <span className="text-sm text-white">{user?.displayName}</span>
-          <ChevronDown className="w-3.5 h-3.5 text-muted-foreground" />
+          <span className="text-sm" style={{ color: 'var(--color-text)' }}>{user?.displayName}</span>
+          <ChevronDown className="w-3.5 h-3.5" style={{ color: 'var(--color-text-sub)' }} />
         </button>
 
         {menuOpen && (
-          <div className="absolute right-0 top-full mt-1 w-48 bg-card border border-border rounded-lg shadow-xl z-50">
+          <div className="absolute right-0 top-full mt-1 w-48 rounded-xl shadow-xl border z-50" style={{ background: 'var(--color-surface)', borderColor: 'var(--color-border)' }}>
             <div className="p-2">
-              <p className="text-xs text-muted-foreground px-2 py-1.5 truncate">{user?.email}</p>
-              <hr className="border-border my-1" />
+              <p className="text-xs px-2 py-1.5 truncate" style={{ color: 'var(--color-text-sub)' }}>{user?.email}</p>
+              <hr style={{ borderColor: 'var(--color-border)' }} className="my-1" />
               <button
                 onClick={handleLogout}
-                className="w-full flex items-center gap-2 px-2 py-2 text-sm text-muted-foreground hover:text-white hover:bg-accent rounded-md transition-colors"
+                className="w-full flex items-center gap-2 px-2 py-2 text-sm rounded-lg hover:bg-[var(--color-surface-2)] transition-colors"
+                style={{ color: 'var(--color-text-sub)' }}
               >
                 <LogOut className="w-4 h-4" />
                 로그아웃

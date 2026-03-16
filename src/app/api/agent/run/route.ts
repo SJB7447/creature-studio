@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { SceneDirectorAgent } from '@/agents/SceneDirectorAgent'
-import { Scene, Project, Character } from '@/types'
+import { Scene, Project, Character, AgentProgress } from '@/types'
 
 export async function POST(req: NextRequest) {
   try {
@@ -14,12 +14,11 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: '씬과 프로젝트 데이터가 필요합니다.' }, { status: 400 })
     }
 
-    // Use streaming for real-time step updates
     const encoder = new TextEncoder()
     const stream = new ReadableStream({
       async start(controller) {
-        const agent = new SceneDirectorAgent((step) => {
-          const data = JSON.stringify({ type: 'step', step })
+        const agent = new SceneDirectorAgent((progress: AgentProgress) => {
+          const data = JSON.stringify({ type: 'progress', progress })
           controller.enqueue(encoder.encode(`data: ${data}\n\n`))
         })
 

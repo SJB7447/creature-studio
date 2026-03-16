@@ -10,8 +10,10 @@ import {
   where,
   orderBy,
   serverTimestamp,
+  onSnapshot,
   DocumentData,
   QueryDocumentSnapshot,
+  Unsubscribe,
 } from 'firebase/firestore'
 import { db } from './firebase'
 import { Project, Episode, Scene, Character } from '@/types'
@@ -149,4 +151,91 @@ export async function updateCharacter(projectId: string, characterId: string, da
 
 export async function deleteCharacter(projectId: string, characterId: string): Promise<void> {
   await deleteDoc(doc(db, 'projects', projectId, 'characters', characterId))
+}
+
+// ─── Real-time Subscriptions ──────────────────────────────────
+export function subscribeProjects(
+  userId: string,
+  callback: (projects: Project[]) => void,
+  onError?: (error: Error) => void
+): Unsubscribe {
+  const q = query(
+    collection(db, 'projects'),
+    where('ownerId', '==', userId),
+    orderBy('updatedAt', 'desc')
+  )
+  return onSnapshot(q, (snap) => {
+    callback(snap.docs.map(d => ({ id: d.id, ...d.data() } as Project)))
+  }, onError)
+}
+
+export function subscribeProject(
+  projectId: string,
+  callback: (project: Project | null) => void,
+  onError?: (error: Error) => void
+): Unsubscribe {
+  return onSnapshot(doc(db, 'projects', projectId), (snap) => {
+    if (!snap.exists()) return callback(null)
+    callback({ id: snap.id, ...snap.data() } as Project)
+  }, onError)
+}
+
+export function subscribeEpisodes(
+  projectId: string,
+  callback: (episodes: Episode[]) => void,
+  onError?: (error: Error) => void
+): Unsubscribe {
+  const q = query(
+    collection(db, 'projects', projectId, 'episodes'),
+    orderBy('number', 'asc')
+  )
+  return onSnapshot(q, (snap) => {
+    callback(snap.docs.map(d => ({ id: d.id, ...d.data() } as Episode)))
+  }, onError)
+}
+
+export function subscribeScenes(
+  projectId: string,
+  episodeId: string,
+  callback: (scenes: Scene[]) => void,
+  onError?: (error: Error) => void
+): Unsubscribe {
+  const q = query(
+    collection(db, 'projects', projectId, 'episodes', episodeId, 'scenes'),
+    orderBy('number', 'asc')
+  )
+  return onSnapshot(q, (snap) => {
+    callback(snap.docs.map(d => ({ id: d.id, ...d.data() } as Scene)))
+  }, onError)
+}
+
+export function subscribeCharacters(
+  projectId: string,
+  callback: (characters: Character[]) => void,
+  onError?: (error: Error) => void
+): Unsubscribe {
+  const q = query(
+    collection(db, 'projects', projectId, 'characters'),
+    orderBy('createdAt', 'asc')
+  )
+  return onSnapshot(q, (snap) => {
+    callback(snap.docs.map(d => ({ id: d.id, ...d.data() } as Character)))
+  }, onError)
+}
+
+// ─── Scene Assets Update ──────────────────────────────────────
+export async function updateSceneAssets(
+  projectId: string,
+  episodeId: string,
+  sceneId: string,
+  assets: Partial<Scene['assets']>
+): Promise<void> {
+  const sceneRef = doc(db, 'projects', projectId, 'episodes', episodeId, 'scenes', sceneId)
+  const snap = await getDoc(sceneRef)
+  if (!snap.exists()) throw new Error('씬을 찾을 수 없습니다.')
+  const current = snap.data().assets || {}
+  await updateDoc(sceneRef, {
+    assets: { ...current, ...assets },
+    updatedAt: serverTimestamp(),
+  })
 }

@@ -1,25 +1,19 @@
 'use client'
 
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { useEffect, useState } from 'react'
+import { QueryClientProvider } from '@tanstack/react-query'
+import { useEffect, useRef } from 'react'
 import { onAuthStateChanged } from 'firebase/auth'
 import { auth } from '@/lib/firebase'
 import { useAuthStore } from '@/store/authStore'
-
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      staleTime: 1000 * 60 * 5,
-      retry: 1,
-    },
-  },
-})
+import { queryClient } from '@/lib/queryClient'
+import { seedInitialData } from '@/lib/seedData'
 
 function AuthProvider({ children }: { children: React.ReactNode }) {
   const { setUser, setLoading } = useAuthStore()
+  const seeded = useRef(false)
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
+    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       if (firebaseUser) {
         setUser({
           uid: firebaseUser.uid,
@@ -27,6 +21,16 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
           displayName: firebaseUser.displayName,
           photoURL: firebaseUser.photoURL,
         })
+
+        // 최초 1회 시드 데이터 생성
+        if (!seeded.current) {
+          seeded.current = true
+          try {
+            await seedInitialData(firebaseUser.uid)
+          } catch (e) {
+            // 시드 실패 시 무시 (기존 데이터 있으면 스킵됨)
+          }
+        }
       } else {
         setUser(null)
       }

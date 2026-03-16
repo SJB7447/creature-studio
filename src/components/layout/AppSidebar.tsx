@@ -30,23 +30,16 @@ export function AppSidebar() {
     },
   ] : []
 
-  function isActive(href: string) {
-    return pathname === href || pathname.startsWith(href + '/')
-  }
-
   return (
-    <aside className="w-56 border-r border-border bg-card flex flex-col shrink-0">
+    <aside className="w-56 border-r flex flex-col shrink-0" style={{ background: 'var(--color-surface)', borderColor: 'var(--color-border)' }}>
       {/* Logo */}
-      <div className="h-16 flex items-center px-4 border-b border-border">
-        <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-purple-500 to-blue-600 flex items-center justify-center">
-            <svg width="16" height="16" viewBox="0 0 40 40" fill="none">
-              <path d="M20 4L36 28H4L20 4Z" fill="white" fillOpacity="0.9" />
-              <circle cx="20" cy="30" r="6" fill="white" fillOpacity="0.7" />
-            </svg>
+      <div className="h-14 flex items-center px-4 border-b" style={{ borderColor: 'var(--color-border)' }}>
+        <Link href="/dashboard" className="flex items-center gap-2.5">
+          <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: 'var(--color-primary-dark)' }}>
+            <span className="text-white text-sm font-bold">C</span>
           </div>
-          <span className="font-bold text-white text-sm">CreatureStudio</span>
-        </div>
+          <span className="font-bold text-sm" style={{ color: 'var(--color-text)' }}>CreatureStudio</span>
+        </Link>
       </div>
 
       {/* Navigation */}
@@ -58,19 +51,22 @@ export function AppSidebar() {
             className={cn(
               'flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm transition-colors',
               pathname === item.href
-                ? 'bg-accent text-white font-medium'
-                : 'text-muted-foreground hover:text-white hover:bg-accent/50'
+                ? 'font-medium'
+                : 'hover:bg-[var(--color-surface-2)]'
             )}
+            style={{
+              background: pathname === item.href ? 'var(--color-surface-2)' : undefined,
+              color: pathname === item.href ? 'var(--color-primary-dark)' : 'var(--color-text-sub)',
+            }}
           >
             <item.icon className="w-4 h-4" />
             {item.label}
           </Link>
         ))}
 
-        {/* Project nav */}
         {currentProject && (
-          <div className="mt-4 pt-4 border-t border-border">
-            <p className="text-xs text-muted-foreground px-3 mb-2 truncate font-medium">
+          <div className="mt-4 pt-4 border-t" style={{ borderColor: 'var(--color-border)' }}>
+            <p className="text-[11px] px-3 mb-2 truncate font-semibold" style={{ color: 'var(--color-text-sub)' }}>
               {currentProject.title}
             </p>
             {projectNav.map((item) => (
@@ -79,10 +75,12 @@ export function AppSidebar() {
                 href={item.href}
                 className={cn(
                   'flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm transition-colors',
-                  pathname === item.href
-                    ? 'bg-accent text-white font-medium'
-                    : 'text-muted-foreground hover:text-white hover:bg-accent/50'
+                  pathname === item.href ? 'font-medium' : 'hover:bg-[var(--color-surface-2)]'
                 )}
+                style={{
+                  background: pathname === item.href ? 'var(--color-surface-2)' : undefined,
+                  color: pathname === item.href ? 'var(--color-primary-dark)' : 'var(--color-text-sub)',
+                }}
               >
                 <item.icon className="w-4 h-4" />
                 {item.label}
@@ -91,10 +89,9 @@ export function AppSidebar() {
           </div>
         )}
 
-        {/* Episode nav */}
         {episodeNav.length > 0 && (
-          <div className="mt-3 pt-3 border-t border-border">
-            <p className="text-xs text-muted-foreground px-3 mb-2 truncate font-medium">
+          <div className="mt-3 pt-3 border-t" style={{ borderColor: 'var(--color-border)' }}>
+            <p className="text-[11px] px-3 mb-2 truncate font-semibold" style={{ color: 'var(--color-text-sub)' }}>
               EP.{currentEpisode?.number} {currentEpisode?.title}
             </p>
             {episodeNav.map((item) => (
@@ -103,10 +100,12 @@ export function AppSidebar() {
                 href={item.href}
                 className={cn(
                   'flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm transition-colors',
-                  pathname === item.href
-                    ? 'bg-accent text-white font-medium'
-                    : 'text-muted-foreground hover:text-white hover:bg-accent/50'
+                  pathname === item.href ? 'font-medium' : 'hover:bg-[var(--color-surface-2)]'
                 )}
+                style={{
+                  background: pathname === item.href ? 'var(--color-surface-2)' : undefined,
+                  color: pathname === item.href ? 'var(--color-primary-dark)' : 'var(--color-text-sub)',
+                }}
               >
                 <item.icon className="w-4 h-4" />
                 {item.label}
