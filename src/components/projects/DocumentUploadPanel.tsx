@@ -24,30 +24,42 @@ export interface ParsedDocumentData {
   genre: string
   targetAudience: string
   artStyle: string
+  colorPalette: string[]
   moodKeywords: string
   prohibitedElements: string
   referenceWorks: string
   broadcaster: string
   runtime: string
   totalEpisodes: string
+  aspectRatio: string
+  frameRate: string
+  submissionDeadline: string
   synopsis: string
-  characters: { name: string; role: string; appearance: string }[]
-  episodes: { number: number; title: string; synopsis: string }[]
+  characters: { name: string; role: string; appearance: string; emotionalRole?: string }[]
+  episodes: { number: number; title: string; synopsis: string; targetEmotion?: string }[]
   checklist: {
     hasTitle: boolean
+    hasTitleEn: boolean
     hasGenre: boolean
     hasTargetAudience: boolean
     hasArtStyle: boolean
+    hasColorPalette: boolean
     hasMoodKeywords: boolean
+    hasProhibitedElements: boolean
+    hasReferenceWorks: boolean
     hasCharacters: boolean
     hasEpisodes: boolean
     hasSynopsis: boolean
     hasBroadcaster: boolean
     hasRuntime: boolean
     hasTotalEpisodes: boolean
+    hasAspectRatio: boolean
+    hasFrameRate: boolean
+    hasSubmissionDeadline: boolean
   }
   documentType: string
   summary: string
+  confidence: string
 }
 
 interface DocumentUploadPanelProps {
@@ -56,16 +68,23 @@ interface DocumentUploadPanelProps {
 
 const CHECKLIST_LABELS: Record<string, string> = {
   hasTitle: '작품명',
+  hasTitleEn: '영문명',
   hasGenre: '장르',
   hasTargetAudience: '타겟 시청자',
   hasArtStyle: '아트 스타일',
+  hasColorPalette: '색상 팔레트',
   hasMoodKeywords: '무드 키워드',
+  hasProhibitedElements: '금지 요소',
+  hasReferenceWorks: '레퍼런스',
   hasCharacters: '캐릭터 정보',
   hasEpisodes: '에피소드 구성',
   hasSynopsis: '시놉시스',
   hasBroadcaster: '방송사/플랫폼',
   hasRuntime: '러닝타임',
   hasTotalEpisodes: '총 화수',
+  hasAspectRatio: '화면비',
+  hasFrameRate: '프레임레이트',
+  hasSubmissionDeadline: '마감일',
 }
 
 export default function DocumentUploadPanel({ onApply }: DocumentUploadPanelProps) {
@@ -281,13 +300,28 @@ export default function DocumentUploadPanel({ onApply }: DocumentUploadPanelProp
             {/* Checklist */}
             <div className="p-4">
               <div className="flex items-center justify-between mb-3">
-                <p className="text-xs font-medium" style={{ color: 'var(--color-text-sub)' }}>
-                  인식된 항목 ({foundCount}/{totalCount})
-                </p>
+                <div className="flex items-center gap-2">
+                  <p className="text-xs font-medium" style={{ color: 'var(--color-text-sub)' }}>
+                    인식된 항목 ({foundCount}/{totalCount})
+                  </p>
+                  {parsed.confidence && (
+                    <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${
+                      parsed.confidence === 'high' ? 'bg-green-500/15 text-green-400' :
+                      parsed.confidence === 'medium' ? 'bg-yellow-500/15 text-yellow-500' :
+                      'bg-red-500/15 text-red-400'
+                    }`}>
+                      {parsed.confidence === 'high' ? '높은 정확도' :
+                       parsed.confidence === 'medium' ? '보통 정확도' : '낮은 정확도'}
+                    </span>
+                  )}
+                </div>
                 <div className="h-1.5 w-24 rounded-full bg-accent overflow-hidden">
                   <div
-                    className="h-full bg-green-500 rounded-full transition-all"
-                    style={{ width: `${(foundCount / totalCount) * 100}%` }}
+                    className="h-full rounded-full transition-all"
+                    style={{
+                      width: `${(foundCount / totalCount) * 100}%`,
+                      background: foundCount / totalCount > 0.7 ? '#22c55e' : foundCount / totalCount > 0.4 ? '#eab308' : '#ef4444',
+                    }}
                   />
                 </div>
               </div>
@@ -312,6 +346,23 @@ export default function DocumentUploadPanel({ onApply }: DocumentUploadPanelProp
                   </div>
                 ))}
               </div>
+
+              {/* Color palette preview */}
+              {parsed.colorPalette && parsed.colorPalette.length > 0 && (
+                <div className="mt-3 flex items-center gap-2">
+                  <span className="text-[10px] font-medium" style={{ color: 'var(--color-text-sub)' }}>팔레트:</span>
+                  <div className="flex gap-1">
+                    {parsed.colorPalette.map((color, i) => (
+                      <div
+                        key={i}
+                        className="w-5 h-5 rounded-md border"
+                        style={{ background: color, borderColor: 'var(--color-border)' }}
+                        title={color}
+                      />
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Detail toggle */}
@@ -359,11 +410,17 @@ export default function DocumentUploadPanel({ onApply }: DocumentUploadPanelProp
                               {parsed.characters.map((c, i) => (
                                 <div key={i} className="flex items-start gap-2 bg-accent/50 p-2.5 rounded-lg">
                                   <div className="w-6 h-6 rounded-full bg-purple-500/20 flex items-center justify-center text-[10px] font-bold text-purple-400 shrink-0 mt-0.5">
-                                    {c.name[0]}
+                                    {c.name?.[0] || '?'}
                                   </div>
-                                  <div>
+                                  <div className="min-w-0">
                                     <p className="text-xs font-medium" style={{ color: 'var(--color-text)' }}>{c.name}</p>
                                     <p className="text-[11px]" style={{ color: 'var(--color-text-sub)' }}>{c.role}</p>
+                                    {c.appearance && (
+                                      <p className="text-[10px] mt-0.5 line-clamp-2" style={{ color: 'var(--color-text-sub)', opacity: 0.7 }}>{c.appearance}</p>
+                                    )}
+                                    {c.emotionalRole && (
+                                      <span className="inline-block mt-1 px-1.5 py-0.5 rounded bg-purple-500/10 text-[10px] text-purple-400">{c.emotionalRole}</span>
+                                    )}
                                   </div>
                                 </div>
                               ))}
@@ -380,14 +437,19 @@ export default function DocumentUploadPanel({ onApply }: DocumentUploadPanelProp
                             </div>
                             <div className="space-y-1">
                               {parsed.episodes.map((ep, i) => (
-                                <div key={i} className="flex items-center gap-2 bg-accent/50 p-2.5 rounded-lg">
-                                  <span className="text-[10px] font-bold text-purple-400 w-5 text-center shrink-0">
+                                <div key={i} className="flex items-start gap-2 bg-accent/50 p-2.5 rounded-lg">
+                                  <span className="text-[10px] font-bold text-purple-400 w-5 text-center shrink-0 mt-0.5">
                                     {ep.number}
                                   </span>
-                                  <div className="min-w-0">
-                                    <p className="text-xs truncate" style={{ color: 'var(--color-text)' }}>{ep.title}</p>
+                                  <div className="min-w-0 flex-1">
+                                    <div className="flex items-center gap-1.5">
+                                      <p className="text-xs truncate font-medium" style={{ color: 'var(--color-text)' }}>{ep.title}</p>
+                                      {ep.targetEmotion && (
+                                        <span className="shrink-0 px-1.5 py-0.5 rounded bg-blue-500/10 text-[10px] text-blue-400">{ep.targetEmotion}</span>
+                                      )}
+                                    </div>
                                     {ep.synopsis && (
-                                      <p className="text-[11px] truncate" style={{ color: 'var(--color-text-sub)' }}>{ep.synopsis}</p>
+                                      <p className="text-[11px] line-clamp-2 mt-0.5" style={{ color: 'var(--color-text-sub)' }}>{ep.synopsis}</p>
                                     )}
                                   </div>
                                 </div>

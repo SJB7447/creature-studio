@@ -28,7 +28,7 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
           try {
             await seedInitialData(firebaseUser.uid)
           } catch (e) {
-            // 시드 실패 시 무시 (기존 데이터 있으면 스킵됨)
+            console.error('[Seed] 시드 데이터 생성 실패:', e)
           }
         }
       } else {

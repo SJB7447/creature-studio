@@ -27,11 +27,17 @@ export default function DashboardPage() {
   const [filter, setFilter] = useState<FilterStatus>('all')
   const [search, setSearch] = useState('')
 
-  const { data: projects = [], isLoading } = useQuery({
+  const { data: projects = [], isLoading, error: queryError } = useQuery({
     queryKey: ['projects', user?.uid],
     queryFn: () => getProjects(user!.uid),
     enabled: !!user,
+    retry: 2,
   })
+
+  // Firestore 쿼리 에러 로깅
+  if (queryError) {
+    console.error('[Dashboard] 프로젝트 조회 실패:', queryError)
+  }
 
   const filtered = projects.filter(p => {
     const matchStatus = filter === 'all' || p.status === filter
@@ -131,7 +137,24 @@ export default function DashboardPage() {
       </div>
 
       {/* Grid */}
-      {isLoading ? (
+      {queryError ? (
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex flex-col items-center justify-center py-24 text-center">
+          <div className="w-16 h-16 rounded-2xl flex items-center justify-center mb-4" style={{ background: '#FEE2E2' }}>
+            <Film className="w-8 h-8" style={{ color: '#EF4444' }} />
+          </div>
+          <p className="text-sm font-medium mb-2" style={{ color: '#EF4444' }}>프로젝트를 불러올 수 없습니다</p>
+          <p className="text-xs mb-4" style={{ color: 'var(--color-text-sub)' }}>
+            Firestore 연결을 확인해주세요. 인덱스가 필요할 수 있습니다.
+          </p>
+          <button
+            onClick={() => window.location.reload()}
+            className="px-4 py-2 rounded-xl text-white text-sm font-medium"
+            style={{ background: 'var(--color-primary-dark)' }}
+          >
+            새로고침
+          </button>
+        </motion.div>
+      ) : isLoading ? (
         <div className="grid grid-cols-3 gap-5">
           {[1, 2, 3].map(i => (
             <div key={i} className="h-64 rounded-2xl animate-pulse" style={{ background: 'var(--color-surface-2)' }} />

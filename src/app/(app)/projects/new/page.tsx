@@ -160,7 +160,33 @@ export default function NewProjectPage() {
       const num = Number(data.totalEpisodes)
       if (!isNaN(num) && num > 0) setTotalEpisodes(num)
     }
-    toast.success('기획안 분석 결과가 적용되었습니다!')
+    // 색상 팔레트
+    if (Array.isArray(data.colorPalette) && data.colorPalette.length > 0) {
+      const validColors = data.colorPalette.filter(c => /^#[0-9A-Fa-f]{3,8}$/.test(c))
+      if (validColors.length > 0) {
+        // 6색 슬롯에 맞춰 채움
+        const palette = [...validColors]
+        while (palette.length < 6) palette.push(DEFAULT_PALETTE[palette.length] || '#CCCCCC')
+        setColorPalette(palette.slice(0, 6))
+      }
+    }
+    // 화면비
+    if (data.aspectRatio && ASPECT_OPTIONS.some(a => a.value === data.aspectRatio)) {
+      setAspectRatio(data.aspectRatio)
+    }
+    // 프레임레이트
+    if (data.frameRate && FPS_OPTIONS.some(f => f.value === data.frameRate)) {
+      setFrameRate(data.frameRate)
+    }
+    // 납품 마감일
+    if (data.submissionDeadline && /^\d{4}-\d{2}-\d{2}$/.test(data.submissionDeadline)) {
+      setSubmissionDeadline(data.submissionDeadline)
+    }
+
+    const checklist = data.checklist
+    const found = checklist ? Object.values(checklist).filter(Boolean).length : 0
+    const total = checklist ? Object.keys(checklist).length : 0
+    toast.success(`기획안 분석 완료! ${found}/${total}개 항목이 자동 입력되었습니다.`)
   }
 
   function nextStep() {
