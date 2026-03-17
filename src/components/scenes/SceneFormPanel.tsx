@@ -4,6 +4,7 @@ import { useState, KeyboardEvent } from 'react'
 import { Scene, Character, Dialogue } from '@/types'
 import { Plus, Trash2, Zap, GripVertical, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import ReferenceUploadButton from '@/components/common/ReferenceUploadButton'
 
 interface Props {
   scene: Scene
@@ -121,7 +122,22 @@ export function SceneFormPanel({ scene, characters, onUpdate }: Props) {
 
       {/* 섹션 2: 장소/환경 */}
       <section>
-        <SectionTitle>장소 / 환경</SectionTitle>
+        <div className="flex items-center justify-between mb-3">
+          <SectionTitle>장소 / 환경</SectionTitle>
+          <ReferenceUploadButton
+            contextType="background"
+            compact
+            label="배경 레퍼런스"
+            onResult={(data) => {
+              if (data.location) set('location', data.location)
+              if (data.backgroundDescription) set('backgroundDescription', data.backgroundDescription)
+              if (data.lighting) set('lighting', data.lighting)
+              if (data.colorGrade) set('colorGrade', data.colorGrade)
+              if (data.timeOfDay) set('timeOfDay', data.timeOfDay)
+              if (data.weather) set('weather', data.weather)
+            }}
+          />
+        </div>
         <div className="space-y-3">
           <Field label="장소명">
             <input value={form.location} onChange={e => set('location', e.target.value)} placeholder="상상동물병원 진료실" className={inputCls} style={inputStyle} />
@@ -202,7 +218,30 @@ export function SceneFormPanel({ scene, characters, onUpdate }: Props) {
 
       {/* 섹션 4: 내용 */}
       <section>
-        <SectionTitle>내용</SectionTitle>
+        <div className="flex items-center justify-between mb-3">
+          <SectionTitle>내용</SectionTitle>
+          <ReferenceUploadButton
+            contextType="scene"
+            compact
+            label="씬 레퍼런스"
+            onResult={(data) => {
+              if (data.backgroundDescription) set('backgroundDescription', data.backgroundDescription)
+              if (data.actionDescription) set('actionDescription', data.actionDescription)
+              if (data.emotionKeywords) {
+                const keywords = typeof data.emotionKeywords === 'string'
+                  ? data.emotionKeywords.split(',').map((s: string) => s.trim()).filter(Boolean)
+                  : data.emotionKeywords
+                set('emotionKeywords', keywords)
+              }
+              if (data.cameraMovement) set('cameraMovement', data.cameraMovement)
+              if (data.cameraAngle) set('cameraAngle', data.cameraAngle)
+              if (data.lighting) set('lighting', data.lighting)
+              if (data.colorGrade) set('colorGrade', data.colorGrade)
+              if (data.soundDesign) set('soundDesign', data.soundDesign)
+              if (data.directorNote) set('directorNote', data.directorNote)
+            }}
+          />
+        </div>
         <div className="space-y-3">
           <Field label="감정 키워드">
             <TagInputInline tags={form.emotionKeywords} onChange={t => set('emotionKeywords', t)} placeholder="감정 키워드 입력 후 Enter" />

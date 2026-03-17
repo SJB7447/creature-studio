@@ -9,6 +9,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { Plus, Trash2, User, X, Edit3, Sparkles, Copy, CheckCircle } from 'lucide-react'
 import { useForm } from 'react-hook-form'
 import { toast } from 'sonner'
+import ReferenceUploadButton from '@/components/common/ReferenceUploadButton'
 
 interface CharFormData {
   name: string
@@ -27,7 +28,7 @@ function CharacterModal({
   open: boolean; onClose: () => void; projectId: string; editChar?: Character | null
 }) {
   const queryClient = useQueryClient()
-  const { register, handleSubmit, reset } = useForm<CharFormData>({
+  const { register, handleSubmit, reset, getValues } = useForm<CharFormData>({
     defaultValues: editChar ? {
       name: editChar.name,
       nameEn: editChar.nameEn,
@@ -104,6 +105,30 @@ function CharacterModal({
             <button onClick={onClose} className="p-1.5 rounded-lg hover:opacity-70"><X className="w-4 h-4" style={{ color: 'var(--color-text-sub)' }} /></button>
           </div>
           <form onSubmit={handleSubmit(d => createMutation.mutate(d))} className="p-5 space-y-4">
+            {/* Reference upload */}
+            <ReferenceUploadButton
+              contextType="character"
+              label="캐릭터 레퍼런스 이미지/문서 업로드"
+              onResult={(data) => {
+                if (data.name) reset({ ...getValues(), name: data.name })
+                if (data.role) reset({ ...getValues(), role: data.role })
+                if (data.emotionalRole) reset({ ...getValues(), emotionalRole: data.emotionalRole })
+                if (data.appearanceBase) reset({ ...getValues(), appearanceBase: data.appearanceBase })
+                if (data.styleKeywords) {
+                  const kw = typeof data.styleKeywords === 'string' ? data.styleKeywords : (data.styleKeywords || []).join(', ')
+                  reset({ ...getValues(), styleKeywords: kw })
+                }
+                if (data.colorScheme) reset({ ...getValues(), colorScheme: data.colorScheme })
+                if (data.fixedPromptKeywords) {
+                  const kw = typeof data.fixedPromptKeywords === 'string' ? data.fixedPromptKeywords : (data.fixedPromptKeywords || []).join(', ')
+                  reset({ ...getValues(), fixedPromptKeywords: kw })
+                }
+                if (data.emotionVariants && Array.isArray(data.emotionVariants)) {
+                  setEmotionVariants(prev => [...prev, ...data.emotionVariants])
+                }
+              }}
+            />
+
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="block text-xs mb-1.5" style={{ color: 'var(--color-text-sub)' }}>이름 *</label>
