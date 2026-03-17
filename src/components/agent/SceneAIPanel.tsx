@@ -14,6 +14,7 @@ import {
   ChevronUp, AlertTriangle, ChevronRight, Clock, Camera, MessageSquare, Music, Eye
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { AgentCrewPanel, AgentStepItem } from './AgentCharacters'
 
 interface Props {
   scene: Scene
@@ -501,13 +502,16 @@ export function SceneAIPanel({ scene, project, characters, projectId, episodeId,
       {/* ════ Body ════ */}
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
 
-        {/* Steps log */}
+        {/* Agent crew panel */}
+        <AgentCrewPanel steps={steps} isRunning={isRunning} />
+
+        {/* Detailed steps log */}
         {steps.length > 0 && (
           <div className="rounded-xl border overflow-hidden" style={{ background: 'var(--color-agent)', borderColor: 'var(--color-agent-border)' }}>
             <button onClick={() => setShowSteps(!showSteps)}
               className="w-full flex items-center justify-between px-4 py-2.5 hover:bg-green-50 transition-colors">
               <div className="flex items-center gap-2">
-                <span className="text-xs font-semibold" style={{ color: 'var(--color-text)' }}>실행 로그</span>
+                <span className="text-xs font-semibold" style={{ color: 'var(--color-text)' }}>상세 실행 로그</span>
                 {isRunning && <Loader2 className="w-3 h-3 animate-spin" style={{ color: 'var(--color-primary-dark)' }} />}
                 {!isRunning && result && !hasErrors && <CheckCircle className="w-3 h-3" style={{ color: '#059669' }} />}
                 {!isRunning && hasErrors && <AlertTriangle className="w-3 h-3 text-amber-500" />}
@@ -518,7 +522,7 @@ export function SceneAIPanel({ scene, project, characters, projectId, episodeId,
               {showSteps && (
                 <motion.div initial={{ height: 0 }} animate={{ height: 'auto' }} exit={{ height: 0 }} className="overflow-hidden">
                   <div className="px-3 pb-3 space-y-0.5 border-t" style={{ borderColor: 'var(--color-agent-border)' }}>
-                    {steps.map((s, i) => <StepItem key={s.id} step={s} index={i} />)}
+                    {steps.map((s, i) => <AgentStepItem key={s.id} step={s} index={i} />)}
                   </div>
                 </motion.div>
               )}
@@ -760,14 +764,30 @@ export function SceneAIPanel({ scene, project, characters, projectId, episodeId,
           </motion.div>
         )}
 
-        {/* Empty state */}
+        {/* Empty state with crew intro */}
         {!result && !isRunning && steps.length === 0 && (
-          <div className="flex flex-col items-center justify-center py-20 text-center">
-            <div className="w-16 h-16 rounded-2xl flex items-center justify-center mb-4" style={{ background: '#EDE9FE' }}>
-              <Bot className="w-8 h-8" style={{ color: 'var(--color-primary)' }} />
+          <div className="flex flex-col items-center justify-center py-12 text-center">
+            <div className="flex items-center gap-2 mb-5">
+              {['🔍', '🎭', '✍️', '🎨', '🎬', '🖼️', '✅'].map((emoji, i) => (
+                <motion.div
+                  key={i}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: i * 0.08 }}
+                  className="w-10 h-10 rounded-full flex items-center justify-center text-lg"
+                  style={{ background: ['#EDE9FE', '#DBEAFE', '#D1FAE5', '#FEF3C7', '#FEE2E2', '#CFFAFE', '#E0E7FF'][i] }}
+                >
+                  {emoji}
+                </motion.div>
+              ))}
             </div>
-            <p className="text-sm mb-1" style={{ color: 'var(--color-text-sub)' }}>에이전트를 실행해보세요</p>
-            <p className="text-xs" style={{ color: 'var(--color-text-sub)', opacity: 0.6 }}>씬 정보를 바탕으로 AI가 연출 스크립트, 프롬프트, 스토리보드를 생성합니다</p>
+            <p className="text-sm font-medium mb-1" style={{ color: 'var(--color-text)' }}>7명의 AI 크루가 대기 중이에요</p>
+            <p className="text-xs mb-1" style={{ color: 'var(--color-text-sub)' }}>
+              하루, 미르, 소율, 다빈, 지안, 온유, 세진이 함께 작업합니다
+            </p>
+            <p className="text-[11px]" style={{ color: 'var(--color-text-sub)', opacity: 0.6 }}>
+              에이전트를 실행하면 감정 분석 → 캐릭터 구성 → 스크립트 → 프롬프트 → 스토리보드 → 검수까지 자동 진행됩니다
+            </p>
           </div>
         )}
       </div>
