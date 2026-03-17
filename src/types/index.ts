@@ -232,3 +232,28 @@ export type User = {
   displayName: string | null
   photoURL: string | null
 }
+
+export type InvitationStatus = 'pending' | 'accepted' | 'declined'
+export type CollaboratorRole = 'editor' | 'viewer'
+
+export interface Invitation {
+  id: string
+  projectId: string
+  projectTitle: string
+  fromUserId: string
+  fromUserName: string
+  fromUserPhoto: string
+  toEmail: string
+  toUserId?: string
+  status: InvitationStatus
+  role: CollaboratorRole
+  createdAt: Timestamp
+}
+
+export interface UserProfile {
+  uid: string
+  email: string
+  displayName: string
+  photoURL: string
+  updatedAt: Timestamp
+}

@@ -52,7 +52,7 @@ export default function ProjectPage() {
   }
 
   return (
-    <div className="p-6 max-w-5xl mx-auto">
+    <div className="p-4 sm:p-6 max-w-5xl mx-auto">
       {/* Project Header */}
       <motion.div
         initial={{ opacity: 0, y: -10 }}

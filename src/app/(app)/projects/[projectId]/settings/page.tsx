@@ -9,6 +9,7 @@ import { toast } from 'sonner'
 import { Save, Trash2 } from 'lucide-react'
 import { useProjectStore } from '@/store/projectStore'
 import { useAuthStore } from '@/store/authStore'
+import { CollaboratorPanel } from '@/components/projects/CollaboratorPanel'
 
 interface FormData {
   title: string
@@ -116,14 +117,14 @@ export default function ProjectSettingsPage() {
   })
 
   return (
-    <div className="p-6 max-w-2xl mx-auto">
+    <div className="p-4 sm:p-6 max-w-2xl mx-auto">
       <h1 className="text-xl font-bold mb-6" style={{ color: 'var(--color-text)' }}>프로젝트 설정</h1>
 
       <form onSubmit={handleSubmit(d => updateMutation.mutate(d))} className="space-y-6">
         {/* Basic */}
         <div className="p-5 rounded-xl border space-y-4" style={{ background: 'var(--color-surface)', borderColor: 'var(--color-border)' }}>
           <h2 className="text-sm font-medium" style={{ color: 'var(--color-text)' }}>기본 정보</h2>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label className="block text-xs mb-1.5" style={{ color: 'var(--color-text-sub)' }}>작품명</label>
               <input {...register('title')} className={inputCls} style={inputStyle} />
@@ -133,7 +134,7 @@ export default function ProjectSettingsPage() {
               <input {...register('titleEn')} className={inputCls} style={inputStyle} />
             </div>
           </div>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label className="block text-xs mb-1.5" style={{ color: 'var(--color-text-sub)' }}>타입</label>
               <select {...register('type')} className={inputCls} style={inputStyle}>
@@ -184,7 +185,7 @@ export default function ProjectSettingsPage() {
             <label className="block text-xs mb-1.5" style={{ color: 'var(--color-text-sub)' }}>레퍼런스 작품</label>
             <input {...register('referenceWorks')} className={inputCls} style={inputStyle} />
           </div>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label className="block text-xs mb-1.5" style={{ color: 'var(--color-text-sub)' }}>화면 비율</label>
               <select {...register('aspectRatio')} className={inputCls} style={inputStyle}>
@@ -208,7 +209,7 @@ export default function ProjectSettingsPage() {
         {/* Production Info */}
         <div className="p-5 rounded-xl border space-y-4" style={{ background: 'var(--color-surface)', borderColor: 'var(--color-border)' }}>
           <h2 className="text-sm font-medium" style={{ color: 'var(--color-text)' }}>제작 정보</h2>
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div>
               <label className="block text-xs mb-1.5" style={{ color: 'var(--color-text-sub)' }}>방송사</label>
               <input {...register('broadcaster')} className={inputCls} style={inputStyle} />
@@ -238,6 +239,9 @@ export default function ProjectSettingsPage() {
           {updateMutation.isPending ? '저장 중...' : '변경사항 저장'}
         </button>
       </form>
+
+      {/* Collaborators */}
+      {project && <CollaboratorPanel project={project} projectId={projectId} />}
 
       {/* Danger zone */}
       <div className="mt-8 p-5 rounded-xl border" style={{ borderColor: '#EF44441A', background: '#EF44440D' }}>

@@ -355,7 +355,7 @@ h1{color:#7C3AED;margin-bottom:4px;font-size:24px}.sub{color:#6B7280;font-size:1
   ]
 
   return (
-    <div className="p-6 max-w-3xl mx-auto">
+    <div className="p-4 sm:p-6 max-w-3xl mx-auto">
       <div className="mb-8">
         <h1 className="text-xl font-bold" style={{ color: 'var(--color-text)' }}>내보내기 센터</h1>
         <p className="text-sm mt-0.5" style={{ color: 'var(--color-text-sub)' }}>생성된 모든 에셋을 다양한 형식으로 내보냅니다.</p>

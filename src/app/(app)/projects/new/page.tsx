@@ -198,7 +198,7 @@ export default function NewProjectPage() {
   const inputStyle = { background: 'var(--color-surface)', borderColor: 'var(--color-border)', color: 'var(--color-text)' }
 
   return (
-    <div className="min-h-full p-8 flex items-start justify-center" style={{ background: 'var(--color-bg)' }}>
+    <div className="min-h-full p-4 sm:p-6 lg:p-8 flex items-start justify-center" style={{ background: 'var(--color-bg)' }}>
       <div className="w-full max-w-2xl">
         {/* Header */}
         <div className="mb-8">
@@ -237,7 +237,7 @@ export default function NewProjectPage() {
               {/* Step 0: Basic */}
               {step === 0 && (
                 <div className="space-y-5 p-6 rounded-2xl border" style={{ background: 'var(--color-surface)', borderColor: 'var(--color-border)' }}>
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
                       <label className="block text-xs font-medium mb-1.5" style={{ color: 'var(--color-text-sub)' }}>작품명 *</label>
                       <input value={title} onChange={e => setTitle(e.target.value)} placeholder="상상동물병원" className={inputCls} style={inputStyle} />
@@ -251,7 +251,7 @@ export default function NewProjectPage() {
                   {/* Type cards */}
                   <div>
                     <label className="block text-xs font-medium mb-2" style={{ color: 'var(--color-text-sub)' }}>타입</label>
-                    <div className="grid grid-cols-5 gap-2">
+                    <div className="grid grid-cols-3 sm:grid-cols-5 gap-2">
                       {TYPE_OPTIONS.map(t => (
                         <button
                           key={t.value}
@@ -322,7 +322,7 @@ export default function NewProjectPage() {
                     <TagInput tags={referenceTags} onChange={setReferenceTags} placeholder="코코멜론, 뽀로로, Bluey (Enter로 추가)" />
                   </div>
 
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
                       <label className="block text-xs font-medium mb-2" style={{ color: 'var(--color-text-sub)' }}>화면 비율</label>
                       <div className="grid grid-cols-2 gap-2">
@@ -370,7 +370,7 @@ export default function NewProjectPage() {
               {/* Step 2: Production */}
               {step === 2 && (
                 <div className="space-y-5 p-6 rounded-2xl border" style={{ background: 'var(--color-surface)', borderColor: 'var(--color-border)' }}>
-                  <div className="grid grid-cols-3 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                     <div>
                       <label className="block text-xs font-medium mb-1.5" style={{ color: 'var(--color-text-sub)' }}>방송사/플랫폼</label>
                       <input value={broadcaster} onChange={e => setBroadcaster(e.target.value)} placeholder="EBS" className={inputCls} style={inputStyle} />

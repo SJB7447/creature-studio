@@ -26,14 +26,14 @@ export function LoginPage() {
   return (
     <div className="min-h-screen flex items-center justify-center relative overflow-hidden" style={{ background: 'var(--color-bg)' }}>
       {/* Gradient orbs */}
-      <div className="absolute top-1/4 left-1/4 w-[500px] h-[500px] rounded-full blur-[120px] opacity-40" style={{ background: 'var(--color-primary)' }} />
-      <div className="absolute bottom-1/4 right-1/4 w-[400px] h-[400px] rounded-full blur-[120px] opacity-30" style={{ background: 'var(--color-accent)' }} />
+      <div className="absolute top-1/4 left-1/4 w-[300px] sm:w-[500px] h-[300px] sm:h-[500px] rounded-full blur-[120px] opacity-40" style={{ background: 'var(--color-primary)' }} />
+      <div className="absolute bottom-1/4 right-1/4 w-[250px] sm:w-[400px] h-[250px] sm:h-[400px] rounded-full blur-[120px] opacity-30" style={{ background: 'var(--color-accent)' }} />
 
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.6 }}
-        className="relative z-10 w-full max-w-md p-10"
+        className="relative z-10 w-full max-w-md px-5 py-8 sm:p-10"
       >
         {/* Logo */}
         <div className="text-center mb-10">

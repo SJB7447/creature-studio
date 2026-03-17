@@ -42,12 +42,12 @@ export default function ScenePage() {
 
   if (sceneLoading) {
     return (
-      <div className="flex h-full">
-        <div className="w-1/2 p-6 space-y-3">
+      <div className="flex flex-col lg:flex-row h-full">
+        <div className="flex-1 p-4 sm:p-6 space-y-3">
           {[1,2,3,4].map(i => <div key={i} className="h-16 rounded-xl bg-card border border-border animate-pulse" />)}
         </div>
-        <div className="w-1/2 border-l border-border p-6">
-          <div className="h-full rounded-xl bg-card border border-border animate-pulse" />
+        <div className="flex-1 border-t lg:border-t-0 lg:border-l border-border p-4 sm:p-6">
+          <div className="h-48 lg:h-full rounded-xl bg-card border border-border animate-pulse" />
         </div>
       </div>
     )

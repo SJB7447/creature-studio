@@ -129,7 +129,7 @@ function CharacterModal({
               }}
             />
 
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
                 <label className="block text-xs mb-1.5" style={{ color: 'var(--color-text-sub)' }}>이름 *</label>
                 <input {...register('name', { required: true })} placeholder="두두" className={inputCls} style={inputStyle} />
@@ -139,7 +139,7 @@ function CharacterModal({
                 <input {...register('nameEn')} placeholder="Dudu" className={inputCls} style={inputStyle} />
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
                 <label className="block text-xs mb-1.5" style={{ color: 'var(--color-text-sub)' }}>역할</label>
                 <input {...register('role')} placeholder="의사, 조력자..." className={inputCls} style={inputStyle} />
@@ -325,7 +325,7 @@ function CharacterCard({ char, projectId, onEdit }: { char: Character; projectId
               <p className="text-xs" style={{ color: 'var(--color-text-sub)' }}>{char.nameEn} · {char.role}</p>
             </div>
           </div>
-          <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+          <div className="flex gap-1 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
             <button onClick={onEdit} className="p-1.5 rounded-md hover:opacity-70">
               <Edit3 className="w-4 h-4" style={{ color: 'var(--color-primary-dark)' }} />
             </button>
@@ -416,15 +416,15 @@ export default function CharactersPage() {
   }
 
   return (
-    <div className="p-6 max-w-5xl mx-auto">
-      <div className="flex items-center justify-between mb-6">
+    <div className="p-4 sm:p-6 max-w-5xl mx-auto">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-6">
         <div>
           <h1 className="text-xl font-bold" style={{ color: 'var(--color-text)' }}>캐릭터 관리</h1>
           <p className="text-sm mt-0.5" style={{ color: 'var(--color-text-sub)' }}>이 프로젝트의 등장 캐릭터를 관리합니다</p>
         </div>
         <button
           onClick={() => { setEditChar(null); setModalOpen(true) }}
-          className="flex items-center gap-2 px-4 py-2 rounded-lg text-white text-sm font-medium transition-colors hover:opacity-90"
+          className="flex items-center gap-2 px-4 py-2 rounded-lg text-white text-sm font-medium transition-colors hover:opacity-90 shrink-0"
           style={{ background: 'var(--color-primary-dark)' }}
         >
           <Plus className="w-4 h-4" />

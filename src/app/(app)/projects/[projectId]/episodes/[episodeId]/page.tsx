@@ -51,7 +51,7 @@ export default function EpisodePage() {
   }
 
   return (
-    <div className="p-6 max-w-5xl mx-auto">
+    <div className="p-4 sm:p-6 max-w-5xl mx-auto">
       {/* Episode Header */}
       <motion.div
         initial={{ opacity: 0, y: -10 }}
@@ -71,7 +71,7 @@ export default function EpisodePage() {
           </div>
         </div>
 
-        <div className="grid grid-cols-3 gap-4 mb-4">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
           <div className="flex items-center gap-2">
             <Heart className="w-4 h-4 text-pink-400" />
             <div>

@@ -5,7 +5,7 @@ import { useAuthStore } from '@/store/authStore'
 import { getProjects } from '@/lib/firestore'
 import { ProjectCard } from '@/components/projects/ProjectCard'
 import { motion } from 'framer-motion'
-import { FolderOpen, Film, Zap, Clock, Plus, Search } from 'lucide-react'
+import { FolderOpen, Film, Zap, Clock, Plus, Search, Users } from 'lucide-react'
 import { useState } from 'react'
 import { cn } from '@/lib/utils'
 import Link from 'next/link'
@@ -48,10 +48,12 @@ export default function DashboardPage() {
     return matchStatus && matchSearch
   })
 
+  const sharedCount = projects.filter(p => p.ownerId !== user?.uid).length
+
   const stats = [
     { label: '전체 프로젝트', value: projects.length, icon: FolderOpen, color: '#7C3AED', bg: '#EDE9FE' },
     { label: '제작 중', value: projects.filter(p => p.status === 'production').length, icon: Film, color: '#059669', bg: '#D1FAE5' },
-    { label: '프리프로덕션', value: projects.filter(p => p.status === 'preproduction').length, icon: Zap, color: '#2563EB', bg: '#DBEAFE' },
+    { label: '공유 프로젝트', value: sharedCount, icon: Users, color: '#2563EB', bg: '#DBEAFE' },
     {
       label: '이번 주 업데이트',
       value: projects.filter(p => {
@@ -63,7 +65,7 @@ export default function DashboardPage() {
   ]
 
   return (
-    <div className="p-8 max-w-7xl mx-auto">
+    <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto">
       {/* Welcome */}
       <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="mb-8">
         <h1 className="text-2xl font-bold" style={{ color: 'var(--color-text)' }}>
@@ -73,7 +75,7 @@ export default function DashboardPage() {
       </motion.div>
 
       {/* Stats */}
-      <div className="grid grid-cols-4 gap-4 mb-8">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-8">
         {stats.map((stat, i) => (
           <motion.div
             key={stat.label}
@@ -93,25 +95,27 @@ export default function DashboardPage() {
       </div>
 
       {/* Project header */}
-      <div className="flex items-center gap-3 mb-4">
-        <h2 className="text-lg font-semibold mr-auto" style={{ color: 'var(--color-text)' }}>프로젝트</h2>
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5" style={{ color: 'var(--color-text-sub)' }} />
-          <input
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-            placeholder="프로젝트 검색..."
-            className="pl-9 pr-4 py-2 rounded-xl border text-sm w-52 focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]"
-            style={{ background: 'var(--color-surface)', borderColor: 'var(--color-border)', color: 'var(--color-text)' }}
-          />
+      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 mb-4">
+        <h2 className="text-lg font-semibold sm:mr-auto" style={{ color: 'var(--color-text)' }}>프로젝트</h2>
+        <div className="flex items-center gap-3 w-full sm:w-auto">
+          <div className="relative flex-1 sm:flex-none">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5" style={{ color: 'var(--color-text-sub)' }} />
+            <input
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              placeholder="프로젝트 검색..."
+              className="pl-9 pr-4 py-2 rounded-xl border text-sm w-full sm:w-52 focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]"
+              style={{ background: 'var(--color-surface)', borderColor: 'var(--color-border)', color: 'var(--color-text)' }}
+            />
+          </div>
+          <Link
+            href="/projects/new"
+            className="flex items-center gap-2 px-4 py-2 rounded-xl text-white text-sm font-medium transition-colors hover:opacity-90 shrink-0"
+            style={{ background: 'var(--color-primary-dark)' }}
+          >
+            <Plus className="w-4 h-4" /><span className="hidden sm:inline">새 프로젝트</span><span className="sm:hidden">추가</span>
+          </Link>
         </div>
-        <Link
-          href="/projects/new"
-          className="flex items-center gap-2 px-4 py-2 rounded-xl text-white text-sm font-medium transition-colors hover:opacity-90"
-          style={{ background: 'var(--color-primary-dark)' }}
-        >
-          <Plus className="w-4 h-4" />새 프로젝트
-        </Link>
       </div>
 
       {/* Filters */}
@@ -155,7 +159,7 @@ export default function DashboardPage() {
           </button>
         </motion.div>
       ) : isLoading ? (
-        <div className="grid grid-cols-3 gap-5">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5">
           {[1, 2, 3].map(i => (
             <div key={i} className="h-64 rounded-2xl animate-pulse" style={{ background: 'var(--color-surface-2)' }} />
           ))}
@@ -179,7 +183,7 @@ export default function DashboardPage() {
           )}
         </motion.div>
       ) : (
-        <div className="grid grid-cols-3 gap-5">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5">
           {filtered.map((project, i) => (
             <motion.div key={project.id} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}>
               <ProjectCard project={project} />

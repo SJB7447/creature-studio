@@ -7,6 +7,7 @@ import { auth } from '@/lib/firebase'
 import { useAuthStore } from '@/store/authStore'
 import { queryClient } from '@/lib/queryClient'
 import { seedInitialData } from '@/lib/seedData'
+import { saveUserProfile } from '@/lib/firestore'
 
 function AuthProvider({ children }: { children: React.ReactNode }) {
   const { setUser, setLoading } = useAuthStore()
@@ -21,6 +22,14 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
           displayName: firebaseUser.displayName,
           photoURL: firebaseUser.photoURL,
         })
+
+        // 유저 프로필 저장 (초대 시 이메일 검색용)
+        saveUserProfile({
+          uid: firebaseUser.uid,
+          email: firebaseUser.email || '',
+          displayName: firebaseUser.displayName || '',
+          photoURL: firebaseUser.photoURL || '',
+        }).catch(() => {})
 
         // 최초 1회 시드 데이터 생성
         if (!seeded.current) {

@@ -126,7 +126,7 @@ function StatsBar({ scenes }: { scenes: Scene[] }) {
   ]
 
   return (
-    <div className="grid grid-cols-4 gap-3 mb-6">
+    <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
       {stats.map(s => (
         <div key={s.label} className="p-3 rounded-xl border bg-card text-center" style={{ borderColor: 'var(--color-border)' }}>
           <p className="text-lg font-bold" style={{ color: 'var(--color-primary-dark)' }}>{s.value}</p>
@@ -286,9 +286,9 @@ ${scene.emotionKeywords.slice(0, 3).map(k => `<span class="tag">${k}</span>`).jo
   }
 
   return (
-    <div className="p-6 max-w-7xl mx-auto">
+    <div className="p-4 sm:p-6 max-w-7xl mx-auto">
       {/* Header */}
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-6">
         <div>
           <h1 className="text-xl font-bold" style={{ color: 'var(--color-text)' }}>스토리보드</h1>
           {episode && <p className="text-sm mt-0.5" style={{ color: 'var(--color-text-sub)' }}>EP.{episode.number} — {episode.title}</p>}

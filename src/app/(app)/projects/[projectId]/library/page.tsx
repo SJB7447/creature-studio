@@ -196,8 +196,8 @@ export default function LibraryPage() {
   }
 
   return (
-    <div className="p-6 max-w-5xl mx-auto">
-      <div className="flex items-center justify-between mb-6">
+    <div className="p-4 sm:p-6 max-w-5xl mx-auto">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-6">
         <div>
           <h1 className="text-xl font-bold" style={{ color: 'var(--color-text)' }}>프롬프트 라이브러리</h1>
           <p className="text-sm mt-0.5" style={{ color: 'var(--color-text-sub)' }}>모든 AI 생성 결과물 아카이브 · {items.length}개</p>
@@ -221,8 +221,8 @@ export default function LibraryPage() {
       </div>
 
       {/* Filters */}
-      <div className="flex flex-wrap gap-3 mb-5">
-        <div className="relative flex-1 min-w-48">
+      <div className="flex flex-wrap gap-2 sm:gap-3 mb-5">
+        <div className="relative w-full sm:flex-1 sm:min-w-48">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5" style={{ color: 'var(--color-text-sub)' }} />
           <input value={search} onChange={e => setSearch(e.target.value)} placeholder="검색..."
             className="w-full pl-9 pr-4 py-2 rounded-lg border text-sm focus:outline-none"
