@@ -66,6 +66,23 @@ export interface Character {
   appearance: CharacterAppearance
   emotionVariants: EmotionVariant[]
   episodeAppearances: string[]
+  profileImage?: string
+  confirmedAt?: Timestamp
+  createdAt: Timestamp
+}
+
+export type ConfirmedAssetCategory = 'background' | 'sound' | 'prop' | 'effect'
+
+export interface ConfirmedAsset {
+  id: string
+  name: string
+  category: ConfirmedAssetCategory
+  description: string
+  fileUrl: string
+  thumbnailUrl?: string
+  fileType: string
+  tags: string[]
+  confirmedAt: Timestamp
   createdAt: Timestamp
 }
 

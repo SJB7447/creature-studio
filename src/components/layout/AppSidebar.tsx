@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { cn } from '@/lib/utils'
-import { LayoutDashboard, Film, Users, Settings, LayoutGrid, Library, Download, Clapperboard, X } from 'lucide-react'
+import { LayoutDashboard, Film, Users, Settings, LayoutGrid, Library, Download, Clapperboard, X, Lock } from 'lucide-react'
 import { useProjectStore } from '@/store/projectStore'
 import { useUIStore } from '@/store/uiStore'
 
@@ -19,6 +19,7 @@ export function AppSidebar() {
   const projectNav = currentProject ? [
     { href: `/projects/${currentProject.id}`, label: '에피소드', icon: Film },
     { href: `/projects/${currentProject.id}/characters`, label: '캐릭터', icon: Users },
+    { href: `/projects/${currentProject.id}/assets`, label: '확정 에셋', icon: Lock },
     { href: `/projects/${currentProject.id}/library`, label: '라이브러리', icon: Library },
     { href: `/projects/${currentProject.id}/export`, label: '내보내기', icon: Download },
     { href: `/projects/${currentProject.id}/settings`, label: '설정', icon: Settings },

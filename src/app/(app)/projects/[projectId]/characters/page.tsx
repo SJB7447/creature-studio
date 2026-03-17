@@ -4,12 +4,13 @@ import { useParams } from 'next/navigation'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { getCharacters, createCharacter, updateCharacter, deleteCharacter } from '@/lib/firestore'
 import { Character, EmotionVariant } from '@/types'
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Plus, Trash2, User, X, Edit3, Sparkles, Copy, CheckCircle } from 'lucide-react'
+import { Plus, Trash2, User, X, Edit3, Sparkles, Copy, CheckCircle, Camera, Lock, Loader2 } from 'lucide-react'
 import { useForm } from 'react-hook-form'
 import { toast } from 'sonner'
 import ReferenceUploadButton from '@/components/common/ReferenceUploadButton'
+import { uploadCharacterProfile } from '@/lib/storage'
 
 interface CharFormData {
   name: string
@@ -42,6 +43,32 @@ function CharacterModal({
   })
 
   const [emotionVariants, setEmotionVariants] = useState<EmotionVariant[]>(editChar?.emotionVariants || [])
+  const [profileImage, setProfileImage] = useState<string | undefined>(editChar?.profileImage)
+  const [profileUploading, setProfileUploading] = useState(false)
+  const [profilePreview, setProfilePreview] = useState<string | null>(null)
+  const profileInputRef = useRef<HTMLInputElement>(null)
+
+  async function handleProfileUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file || !file.type.startsWith('image/')) return
+    const reader = new FileReader()
+    reader.onload = (ev) => setProfilePreview(ev.target?.result as string)
+    reader.readAsDataURL(file)
+
+    setProfileUploading(true)
+    try {
+      const charId = editChar?.id || 'new-' + Date.now()
+      const url = await uploadCharacterProfile(projectId, charId, file)
+      setProfileImage(url)
+      toast.success('프로필 이미지 업로드 완료!')
+    } catch (err: any) {
+      toast.error('업로드 실패: ' + err.message)
+      setProfilePreview(null)
+    } finally {
+      setProfileUploading(false)
+      if (profileInputRef.current) profileInputRef.current.value = ''
+    }
+  }
 
   function addVariant() {
     setEmotionVariants(prev => [...prev, { emotion: '', appearanceChange: '', promptAddition: '' }])
@@ -70,6 +97,7 @@ function CharacterModal({
         },
         emotionVariants,
         episodeAppearances: editChar?.episodeAppearances || [],
+        ...(profileImage ? { profileImage } : {}),
       }
       if (editChar) {
         await updateCharacter(projectId, editChar.id, payload)
@@ -105,6 +133,53 @@ function CharacterModal({
             <button onClick={onClose} className="p-1.5 rounded-lg hover:opacity-70"><X className="w-4 h-4" style={{ color: 'var(--color-text-sub)' }} /></button>
           </div>
           <form onSubmit={handleSubmit(d => createMutation.mutate(d))} className="p-5 space-y-4">
+            {/* Profile image upload */}
+            <input ref={profileInputRef} type="file" className="hidden" accept=".png,.jpg,.jpeg,.webp" onChange={handleProfileUpload} />
+            <div className="flex items-center gap-4">
+              <div className="relative group shrink-0">
+                <div
+                  className="w-20 h-20 rounded-full overflow-hidden border-2 cursor-pointer transition-all hover:border-purple-400 flex items-center justify-center"
+                  style={{
+                    borderColor: profileImage ? '#10B981' : 'var(--color-border)',
+                    background: (profilePreview || profileImage) ? 'transparent' : 'var(--color-surface-2)',
+                  }}
+                  onClick={() => !profileUploading && profileInputRef.current?.click()}
+                >
+                  {profileUploading ? (
+                    <Loader2 className="w-5 h-5 animate-spin" style={{ color: 'var(--color-primary-dark)' }} />
+                  ) : (profilePreview || profileImage) ? (
+                    <img src={profilePreview || profileImage} alt="profile" className="w-full h-full object-cover" />
+                  ) : (
+                    <Camera className="w-5 h-5" style={{ color: 'var(--color-text-sub)' }} />
+                  )}
+                  {!profileUploading && (profilePreview || profileImage) && (
+                    <div className="absolute inset-0 rounded-full bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                      <Camera className="w-5 h-5 text-white" />
+                    </div>
+                  )}
+                </div>
+                {profileImage && (
+                  <div className="absolute -bottom-0.5 -right-0.5 w-6 h-6 rounded-full flex items-center justify-center border-2"
+                    style={{ background: '#10B981', borderColor: 'var(--color-surface)' }} title="확정된 프로필">
+                    <Lock className="w-3 h-3 text-white" />
+                  </div>
+                )}
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-xs font-medium" style={{ color: 'var(--color-text)' }}>캐릭터 확정 프로필</p>
+                <p className="text-[10px] mt-0.5" style={{ color: 'var(--color-text-sub)' }}>
+                  디자인이 확정되면 프로필 이미지를 등록하세요. 이후 이 이미지가 일관성 기준이 됩니다.
+                </p>
+                {profileImage && (
+                  <button type="button" onClick={() => { setProfileImage(undefined); setProfilePreview(null) }}
+                    className="text-[10px] mt-1 px-2 py-0.5 rounded border hover:opacity-70"
+                    style={{ borderColor: 'var(--color-border)', color: '#EF4444' }}>
+                    프로필 제거
+                  </button>
+                )}
+              </div>
+            </div>
+
             {/* Reference upload */}
             <ReferenceUploadButton
               contextType="character"
@@ -317,8 +392,22 @@ function CharacterCard({ char, projectId, onEdit }: { char: Character; projectId
       <div className="p-5 rounded-xl border transition-colors group" style={{ background: 'var(--color-surface)', borderColor: 'var(--color-border)' }}>
         <div className="flex items-start justify-between mb-3">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ background: 'var(--color-primary)' }}>
-              <User className="w-5 h-5" style={{ color: 'var(--color-primary-dark)' }} />
+            <div className="relative shrink-0">
+              {char.profileImage ? (
+                <div className="w-10 h-10 rounded-full overflow-hidden border-2" style={{ borderColor: '#10B981' }}>
+                  <img src={char.profileImage} alt={char.name} className="w-full h-full object-cover" />
+                </div>
+              ) : (
+                <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ background: 'var(--color-primary)' }}>
+                  <User className="w-5 h-5" style={{ color: 'var(--color-primary-dark)' }} />
+                </div>
+              )}
+              {char.profileImage && (
+                <div className="absolute -bottom-0.5 -right-0.5 w-4 h-4 rounded-full flex items-center justify-center border"
+                  style={{ background: '#10B981', borderColor: 'var(--color-surface)' }}>
+                  <Lock className="w-2 h-2 text-white" />
+                </div>
+              )}
             </div>
             <div>
               <h3 className="font-medium" style={{ color: 'var(--color-text)' }}>{char.name}</h3>
@@ -343,6 +432,17 @@ function CharacterCard({ char, projectId, onEdit }: { char: Character; projectId
           {char.role && <span className="text-xs px-2 py-0.5 rounded-full" style={{ background: 'var(--color-primary)', color: 'var(--color-primary-dark)' }}>{char.role}</span>}
           {char.emotionalRole && <span className="text-xs px-2 py-0.5 rounded-full" style={{ background: 'var(--color-accent-2)', color: '#0369A1' }}>{char.emotionalRole}</span>}
         </div>
+
+        {/* Confirmed profile image showcase */}
+        {char.profileImage && (
+          <div className="mb-3 rounded-lg overflow-hidden border" style={{ borderColor: '#10B981' }}>
+            <img src={char.profileImage} alt={`${char.name} 확정 디자인`} className="w-full h-40 object-cover" />
+            <div className="px-2 py-1 flex items-center gap-1.5" style={{ background: '#ECFDF5' }}>
+              <Lock className="w-3 h-3" style={{ color: '#10B981' }} />
+              <span className="text-[10px] font-medium" style={{ color: '#059669' }}>확정된 캐릭터 디자인</span>
+            </div>
+          </div>
+        )}
 
         {char.appearance.base && (
           <p className="text-xs line-clamp-2 mb-3" style={{ color: 'var(--color-text-sub)' }}>{char.appearance.base}</p>

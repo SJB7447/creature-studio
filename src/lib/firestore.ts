@@ -19,7 +19,7 @@ import {
   Unsubscribe,
 } from 'firebase/firestore'
 import { db } from './firebase'
-import { Project, Episode, Scene, Character, Invitation, UserProfile, CollaboratorRole } from '@/types'
+import { Project, Episode, Scene, Character, ConfirmedAsset, Invitation, UserProfile, CollaboratorRole } from '@/types'
 
 // ─── Projects ────────────────────────────────────────────────
 export async function getProjects(userId: string): Promise<Project[]> {
@@ -176,6 +176,54 @@ export async function updateCharacter(projectId: string, characterId: string, da
 
 export async function deleteCharacter(projectId: string, characterId: string): Promise<void> {
   await deleteDoc(doc(db, 'projects', projectId, 'characters', characterId))
+}
+
+// ─── Confirmed Assets ────────────────────────────────────────
+export async function getConfirmedAssets(projectId: string): Promise<ConfirmedAsset[]> {
+  const q = query(
+    collection(db, 'projects', projectId, 'confirmedAssets'),
+    orderBy('createdAt', 'desc')
+  )
+  const snap = await getDocs(q)
+  return snap.docs.map(d => ({ id: d.id, ...d.data() } as ConfirmedAsset))
+}
+
+export async function createConfirmedAsset(
+  projectId: string,
+  data: Omit<ConfirmedAsset, 'id' | 'createdAt' | 'confirmedAt'>
+): Promise<string> {
+  const ref = await addDoc(collection(db, 'projects', projectId, 'confirmedAssets'), {
+    ...data,
+    confirmedAt: serverTimestamp(),
+    createdAt: serverTimestamp(),
+  })
+  return ref.id
+}
+
+export async function updateConfirmedAsset(
+  projectId: string,
+  assetId: string,
+  data: Partial<ConfirmedAsset>
+): Promise<void> {
+  await updateDoc(doc(db, 'projects', projectId, 'confirmedAssets', assetId), data)
+}
+
+export async function deleteConfirmedAsset(projectId: string, assetId: string): Promise<void> {
+  await deleteDoc(doc(db, 'projects', projectId, 'confirmedAssets', assetId))
+}
+
+export function subscribeConfirmedAssets(
+  projectId: string,
+  callback: (assets: ConfirmedAsset[]) => void,
+  onError?: (error: Error) => void
+): Unsubscribe {
+  const q = query(
+    collection(db, 'projects', projectId, 'confirmedAssets'),
+    orderBy('createdAt', 'desc')
+  )
+  return onSnapshot(q, (snap) => {
+    callback(snap.docs.map(d => ({ id: d.id, ...d.data() } as ConfirmedAsset)))
+  }, onError)
 }
 
 // ─── Real-time Subscriptions ──────────────────────────────────
