@@ -1,5 +1,36 @@
 import { Scene, Project } from '@/types'
 
+/**
+ * 타임코드(MM:SS 또는 H:MM:SS)를 초 단위로 변환
+ */
+export function parseTimecode(tc: string): number {
+  const parts = tc.split(':').map(Number)
+  if (parts.length === 3) return parts[0] * 3600 + parts[1] * 60 + parts[2]
+  if (parts.length === 2) return parts[0] * 60 + parts[1]
+  return 0
+}
+
+/**
+ * 씬 길이(초)에 따른 필요 이미지 컷 수 계산
+ * 약 3초당 1컷 기준, 최소 1컷 ~ 최대 15컷
+ */
+export function calculateCutCount(scene: Scene): number {
+  const startSec = parseTimecode(scene.timeStart)
+  const endSec = parseTimecode(scene.timeEnd)
+  const durationSec = Math.max(endSec - startSec, 0)
+
+  if (durationSec <= 0) return 1
+  const cuts = Math.ceil(durationSec / 3)
+  return Math.max(1, Math.min(cuts, 15))
+}
+
+/**
+ * 씬 길이(초) 계산
+ */
+export function getSceneDurationSec(scene: Scene): number {
+  return Math.max(parseTimecode(scene.timeEnd) - parseTimecode(scene.timeStart), 0)
+}
+
 export function formatDialogues(scene: Scene): string {
   if (!scene.dialogues || scene.dialogues.length === 0) return '(대사 없음)'
   return scene.dialogues

@@ -241,6 +241,7 @@ export function SceneAIPanel({ scene, project, characters, projectId, episodeId,
   })
   const [activeTab, setActiveTab] = useState<ResultTab>('script')
   const [imagePlatform, setImagePlatform] = useState<ImagePlatform>('midjourney')
+  const [selectedCut, setSelectedCut] = useState<number>(0) // 0 = 대표, 1~N = 컷별
   const [videoPlatform, setVideoPlatform] = useState<VideoPlatform>('veo')
   const [transformView, setTransformView] = useState<'after' | 'before'>('after')
   const [showSteps, setShowSteps] = useState(true)
@@ -258,6 +259,7 @@ export function SceneAIPanel({ scene, project, characters, projectId, episodeId,
         characterContext: agentStore.characterContext || prev?.characterContext || emptyCharCtx(),
         directorScript: agentStore.directorScript || prev?.directorScript || '',
         imagePrompts: agentStore.imagePrompts || prev?.imagePrompts || emptyImagePrompts(),
+        imagePromptCuts: agentStore.imagePromptCuts || prev?.imagePromptCuts || [],
         videoPrompts: agentStore.videoPrompts || prev?.videoPrompts || emptyVideoPrompts(),
         storyboardFrames: agentStore.storyboardFrames || prev?.storyboardFrames || [],
         validation: agentStore.validation || prev?.validation || emptyValidation(),
@@ -265,7 +267,7 @@ export function SceneAIPanel({ scene, project, characters, projectId, episodeId,
         steps: prev?.steps || [],
       }))
     }
-  }, [agentStore.status, agentStore.directorScript, agentStore.imagePrompts, agentStore.videoPrompts, agentStore.storyboardFrames, agentStore.validation, agentStore.analysis, agentStore.characterContext])
+  }, [agentStore.status, agentStore.directorScript, agentStore.imagePrompts, agentStore.imagePromptCuts, agentStore.videoPrompts, agentStore.storyboardFrames, agentStore.validation, agentStore.analysis, agentStore.characterContext])
 
   // ─── Auto-save to Firebase on generation complete ─────
   const autoSave = useCallback(async (r: AgentResult) => {
@@ -274,6 +276,7 @@ export function SceneAIPanel({ scene, project, characters, projectId, episodeId,
         assets: {
           directorScript: r.directorScript,
           imagePrompt: r.imagePrompts,
+          imagePromptCuts: r.imagePromptCuts || [],
           videoPrompt: r.videoPrompts,
           storyboardFrames: r.storyboardFrames,
           agentAnalysis: r.agentAnalysis,
@@ -373,7 +376,7 @@ export function SceneAIPanel({ scene, project, characters, projectId, episodeId,
     const s = useAgentStore.getState()
     switch (stepType) {
       case 'script': return s.directorScript ? { directorScript: s.directorScript } : {}
-      case 'imagePrompt': return s.imagePrompts ? { imagePrompts: s.imagePrompts } : {}
+      case 'imagePrompt': return s.imagePrompts ? { imagePrompts: s.imagePrompts, imagePromptCuts: s.imagePromptCuts || [] } : {}
       case 'videoPrompt': return s.videoPrompts ? { videoPrompts: s.videoPrompts } : {}
       case 'storyboard': return s.storyboardFrames ? { storyboardFrames: s.storyboardFrames } : {}
     }
@@ -405,6 +408,7 @@ export function SceneAIPanel({ scene, project, characters, projectId, episodeId,
         assets: {
           directorScript: result.directorScript,
           imagePrompt: result.imagePrompts,
+          imagePromptCuts: result.imagePromptCuts || [],
           videoPrompt: result.videoPrompts,
           storyboardFrames: result.storyboardFrames,
           agentAnalysis: result.agentAnalysis,
@@ -601,6 +605,47 @@ export function SceneAIPanel({ scene, project, characters, projectId, episodeId,
             {/* ════ TAB 2: 이미지 프롬프트 ════ */}
             {activeTab === 'image' && result.imagePrompts && (
               <div>
+                {/* 컷 선택 바 — 컷별 프롬프트가 있을 때만 표시 */}
+                {result.imagePromptCuts && result.imagePromptCuts.length > 0 && (
+                  <div className="mb-3">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Image className="w-3.5 h-3.5" style={{ color: 'var(--color-primary-dark)' }} />
+                      <span className="text-[11px] font-semibold" style={{ color: 'var(--color-text)' }}>
+                        총 {result.imagePromptCuts.length}컷
+                      </span>
+                      <span className="text-[10px]" style={{ color: 'var(--color-text-sub)' }}>
+                        ({scene.timeStart}~{scene.timeEnd})
+                      </span>
+                    </div>
+                    <div className="flex gap-1 flex-wrap">
+                      <button
+                        onClick={() => setSelectedCut(0)}
+                        className="px-2.5 py-1 rounded-md text-[10px] font-medium transition-colors border"
+                        style={{
+                          background: selectedCut === 0 ? 'var(--color-primary-dark)' : 'var(--color-surface)',
+                          color: selectedCut === 0 ? 'white' : 'var(--color-text-sub)',
+                          borderColor: selectedCut === 0 ? 'var(--color-primary-dark)' : 'var(--color-border)',
+                        }}>
+                        대표
+                      </button>
+                      {result.imagePromptCuts.map((cut) => (
+                        <button
+                          key={cut.cutNumber}
+                          onClick={() => setSelectedCut(cut.cutNumber)}
+                          className="px-2.5 py-1 rounded-md text-[10px] font-medium transition-colors border"
+                          style={{
+                            background: selectedCut === cut.cutNumber ? 'var(--color-primary-dark)' : 'var(--color-surface)',
+                            color: selectedCut === cut.cutNumber ? 'white' : 'var(--color-text-sub)',
+                            borderColor: selectedCut === cut.cutNumber ? 'var(--color-primary-dark)' : 'var(--color-border)',
+                          }}>
+                          {cut.cutNumber}컷
+                          <span className="ml-1 opacity-70">{cut.timeStart}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
                 <PlatformTabs tabs={IMAGE_PLATFORMS} active={imagePlatform} onChange={setImagePlatform} />
 
                 {/* Transform scene toggle */}
@@ -628,21 +673,49 @@ export function SceneAIPanel({ scene, project, characters, projectId, episodeId,
                   </div>
                 )}
 
-                {/* Platform-specific prompt */}
-                {imagePlatform === 'base' && <PromptDisplay value={result.imagePrompts.base} />}
-                {imagePlatform === 'midjourney' && <PromptDisplay value={result.imagePrompts.midjourney} desc="--ar, --style, --v 파라미터 포함 Midjourney v6 최적화" />}
-                {imagePlatform === 'imagen' && <PromptDisplay value={result.imagePrompts.imagen} desc="자연어 서술형 Google Imagen 3 최적화" />}
+                {/* 컷별 장면 설명 */}
+                {selectedCut > 0 && result.imagePromptCuts && (() => {
+                  const cut = result.imagePromptCuts.find(c => c.cutNumber === selectedCut)
+                  if (!cut) return null
+                  return (
+                    <div className="mb-3 p-2.5 rounded-lg border" style={{ background: 'var(--color-surface-2)', borderColor: 'var(--color-border)' }}>
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="text-[11px] font-semibold" style={{ color: 'var(--color-primary-dark)' }}>
+                          컷 {cut.cutNumber}
+                        </span>
+                        <span className="text-[10px]" style={{ color: 'var(--color-text-sub)' }}>
+                          {cut.timeStart} ~ {cut.timeEnd}
+                        </span>
+                      </div>
+                      <p className="text-[11px]" style={{ color: 'var(--color-text)' }}>{cut.description}</p>
+                    </div>
+                  )
+                })()}
 
-                {/* Negative prompt (always shown) */}
-                <div className="mt-3">
-                  <div className="flex items-center gap-2 mb-1.5">
-                    <span className="text-[11px] font-semibold" style={{ color: '#EF4444' }}>Negative Prompt</span>
-                    <CopyBtn text={result.imagePrompts.negativePrompt} />
-                  </div>
-                  <div className="p-3 rounded-xl border" style={{ background: '#FEF2F2', borderColor: '#FECACA' }}>
-                    <p className="text-xs font-mono whitespace-pre-wrap" style={{ color: '#991B1B' }}>{result.imagePrompts.negativePrompt}</p>
-                  </div>
-                </div>
+                {/* Platform-specific prompt — 대표 or 컷별 */}
+                {(() => {
+                  const prompts = selectedCut === 0
+                    ? result.imagePrompts
+                    : result.imagePromptCuts?.find(c => c.cutNumber === selectedCut)?.prompts || result.imagePrompts
+                  return (
+                    <>
+                      {imagePlatform === 'base' && <PromptDisplay value={prompts.base} />}
+                      {imagePlatform === 'midjourney' && <PromptDisplay value={prompts.midjourney} desc="--ar, --style, --v 파라미터 포함 Midjourney v6 최적화" />}
+                      {imagePlatform === 'imagen' && <PromptDisplay value={prompts.imagen} desc="자연어 서술형 Google Imagen 3 최적화" />}
+
+                      {/* Negative prompt (always shown) */}
+                      <div className="mt-3">
+                        <div className="flex items-center gap-2 mb-1.5">
+                          <span className="text-[11px] font-semibold" style={{ color: '#EF4444' }}>Negative Prompt</span>
+                          <CopyBtn text={prompts.negativePrompt} />
+                        </div>
+                        <div className="p-3 rounded-xl border" style={{ background: '#FEF2F2', borderColor: '#FECACA' }}>
+                          <p className="text-xs font-mono whitespace-pre-wrap" style={{ color: '#991B1B' }}>{prompts.negativePrompt}</p>
+                        </div>
+                      </div>
+                    </>
+                  )
+                })()}
 
                 <FeedbackBar
                   placeholder="수정하고 싶은 부분을 입력하세요 (예: 더 밝은 톤으로, 캐릭터를 중앙에)"
@@ -809,6 +882,7 @@ function buildResultFromAssets(scene: Scene): AgentResult {
     characterContext: emptyCharCtx(),
     directorScript: scene.assets.directorScript || '',
     imagePrompts: scene.assets.imagePrompt || emptyImagePrompts(),
+    imagePromptCuts: scene.assets.imagePromptCuts || [],
     videoPrompts: scene.assets.videoPrompt || emptyVideoPrompts(),
     storyboardFrames: scene.assets.storyboardFrames || [],
     validation: emptyValidation(),

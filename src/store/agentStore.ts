@@ -2,7 +2,7 @@ import { create } from 'zustand'
 import {
   Scene, Project, Character,
   AgentStepName, SceneAnalysis, CharacterContext,
-  ImagePrompts, VideoPrompts, StoryboardFrame, ValidationResult,
+  ImagePrompts, ImagePromptCut, VideoPrompts, StoryboardFrame, ValidationResult,
 } from '@/types'
 
 export type AgentStatus = 'idle' | 'running' | 'done' | 'error'
@@ -20,6 +20,7 @@ interface AgentStore {
   characterContext: CharacterContext | null
   directorScript: string | null
   imagePrompts: ImagePrompts | null
+  imagePromptCuts: ImagePromptCut[] | null
   videoPrompts: VideoPrompts | null
   storyboardFrames: StoryboardFrame[] | null
   validation: ValidationResult | null
@@ -47,6 +48,7 @@ const INITIAL_STATE = {
   characterContext: null,
   directorScript: null,
   imagePrompts: null,
+  imagePromptCuts: null,
   videoPrompts: null,
   storyboardFrames: null,
   validation: null,
@@ -107,6 +109,7 @@ export const useAgentStore = create<AgentStore>((set, get) => ({
                 if (p.result.characterContext) set({ characterContext: p.result.characterContext })
                 if (p.result.directorScript) set({ directorScript: p.result.directorScript })
                 if (p.result.imagePrompts) set({ imagePrompts: p.result.imagePrompts })
+                if (p.result.imagePromptCuts) set({ imagePromptCuts: p.result.imagePromptCuts })
                 if (p.result.videoPrompts) set({ videoPrompts: p.result.videoPrompts })
                 if (p.result.storyboardFrames) set({ storyboardFrames: p.result.storyboardFrames })
                 if (p.result.validation) {
@@ -127,6 +130,7 @@ export const useAgentStore = create<AgentStore>((set, get) => ({
                 characterContext: r.characterContext,
                 directorScript: r.directorScript,
                 imagePrompts: r.imagePrompts,
+                imagePromptCuts: r.imagePromptCuts || null,
                 videoPrompts: r.videoPrompts,
                 storyboardFrames: r.storyboardFrames,
                 validation: r.validation,
@@ -197,6 +201,7 @@ export const useAgentStore = create<AgentStore>((set, get) => ({
 
       if (data.result.directorScript !== undefined) updates.directorScript = data.result.directorScript
       if (data.result.imagePrompts) updates.imagePrompts = data.result.imagePrompts
+      if (data.result.imagePromptCuts) (updates as any).imagePromptCuts = data.result.imagePromptCuts
       if (data.result.videoPrompts) updates.videoPrompts = data.result.videoPrompts
       if (data.result.storyboardFrames) updates.storyboardFrames = data.result.storyboardFrames
 

@@ -1,15 +1,16 @@
 import {
   Scene, Project, Character,
   AgentResult, AgentStepInfo, AgentProgress, AgentStepName,
-  SceneAnalysis, CharacterContext, ImagePrompts, VideoPrompts, StoryboardFrame, ValidationResult,
+  SceneAnalysis, CharacterContext, ImagePrompts, ImagePromptCut, VideoPrompts, StoryboardFrame, ValidationResult,
 } from '@/types'
 import { buildAnalyzePrompt, parseAnalysisResult } from './steps/step1_analyze'
 import { buildCharacterContext } from './steps/step2_characters'
 import { buildScriptPrompt } from './steps/step3_script'
-import { buildImagePromptPrompt, parseImagePrompts } from './steps/step4_imagePrompt'
+import { buildImagePromptPrompt, parseImagePrompts, buildImagePromptCutsPrompt, parseImagePromptCuts } from './steps/step4_imagePrompt'
 import { buildVideoPromptPrompt, parseVideoPrompts } from './steps/step5_videoPrompt'
 import { buildStoryboardPrompt, parseStoryboardFrames } from './steps/step6_storyboard'
 import { buildValidatePrompt, parseValidationResult } from './steps/step7_validate'
+import { calculateCutCount } from './steps/helpers'
 import { GoogleGenerativeAI } from '@google/generative-ai'
 
 // ─── Gemini Helper (with retry) ─────────────────────────
@@ -64,8 +65,10 @@ export class SceneDirectorAgent {
     let characterContext: CharacterContext = { characterCount: 0, context: '', characters: [] }
     let directorScript = ''
     let imagePrompts: ImagePrompts = { base: '', midjourney: '', imagen: '', negativePrompt: '' }
+    let imagePromptCuts: ImagePromptCut[] = []
     let videoPrompts: VideoPrompts = { veo: '', sora: '', runway: '' }
     let storyboardFrames: StoryboardFrame[] = []
+    const cutCount = calculateCutCount(scene)
     let validation: ValidationResult = { styleCompliance: '', prohibitedCheck: '', keyElementReflection: '', recommendations: '', qualityGrade: 'B', raw: '' }
 
     // ── Step 1: 씬 분석 ──
@@ -116,16 +119,23 @@ export class SceneDirectorAgent {
       this.report('error', 3, `연출 스크립트 생성 실패: ${e.message}`)
     }
 
-    // ── Step 4: 이미지 프롬프트 ──
+    // ── Step 4: 이미지 프롬프트 (대표 1장 + 컷별 다수) ──
     steps[3].status = 'running'
-    this.report('imagePrompt', 4, '이미지 프롬프트 생성 중...')
+    this.report('imagePrompt', 4, `이미지 프롬프트 생성 중... (${cutCount}컷)`)
     try {
+      // 대표 프롬프트 1세트 (하위 호환용)
       const prompt = buildImagePromptPrompt(scene, project, analysis, characterContext)
       const raw = await callGemini(prompt)
       imagePrompts = parseImagePrompts(raw)
+
+      // 컷별 프롬프트 생성
+      const cutsPrompt = buildImagePromptCutsPrompt(scene, project, analysis, characterContext, cutCount)
+      const cutsRaw = await callGemini(cutsPrompt)
+      imagePromptCuts = parseImagePromptCuts(cutsRaw)
+
       steps[3].status = 'done'
-      steps[3].result = '이미지 프롬프트 4종 생성 완료'
-      this.report('imagePrompt', 4, '이미지 프롬프트 4종 생성 완료', { imagePrompts })
+      steps[3].result = `이미지 프롬프트 ${imagePromptCuts.length}컷 생성 완료`
+      this.report('imagePrompt', 4, `이미지 프롬프트 ${imagePromptCuts.length}컷 생성 완료`, { imagePrompts, imagePromptCuts })
     } catch (e: any) {
       steps[3].status = 'error'
       steps[3].error = e.message
@@ -152,7 +162,7 @@ export class SceneDirectorAgent {
     steps[5].status = 'running'
     this.report('storyboard', 6, '스토리보드 프레임 분해 중...')
     try {
-      const prompt = buildStoryboardPrompt(scene, analysis, directorScript)
+      const prompt = buildStoryboardPrompt(scene, analysis, directorScript, cutCount)
       const raw = await callGemini(prompt)
       storyboardFrames = parseStoryboardFrames(raw)
       steps[5].status = 'done'
@@ -191,6 +201,7 @@ export class SceneDirectorAgent {
       characterContext,
       directorScript,
       imagePrompts,
+      imagePromptCuts,
       videoPrompts,
       storyboardFrames,
       validation,

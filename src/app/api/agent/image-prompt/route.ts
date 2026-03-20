@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { callGeminiWithRetry } from '@/lib/gemini'
-import { buildImagePromptPrompt, parseImagePrompts } from '@/agents/steps/step4_imagePrompt'
+import { buildImagePromptPrompt, parseImagePrompts, buildImagePromptCutsPrompt, parseImagePromptCuts } from '@/agents/steps/step4_imagePrompt'
 import { Scene, Project, SceneAnalysis, CharacterContext } from '@/types'
+import { calculateCutCount } from '@/agents/steps/helpers'
 
 export async function POST(req: NextRequest) {
   try {
@@ -20,7 +21,12 @@ export async function POST(req: NextRequest) {
     const raw = await callGeminiWithRetry(prompt)
     const imagePrompts = parseImagePrompts(raw)
 
-    return NextResponse.json({ result: imagePrompts })
+    const cutCount = calculateCutCount(scene)
+    const cutsPrompt = buildImagePromptCutsPrompt(scene, project, analysis, characterContext, cutCount)
+    const cutsRaw = await callGeminiWithRetry(cutsPrompt)
+    const imagePromptCuts = parseImagePromptCuts(cutsRaw)
+
+    return NextResponse.json({ result: imagePrompts, imagePromptCuts })
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 })
   }

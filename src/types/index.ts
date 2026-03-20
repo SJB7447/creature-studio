@@ -123,6 +123,15 @@ export interface ImagePrompts {
   negativePrompt: string
 }
 
+/** 컷별 이미지 프롬프트 (시간 구간 + 프롬프트) */
+export interface ImagePromptCut {
+  cutNumber: number
+  timeStart: string
+  timeEnd: string
+  description: string
+  prompts: ImagePrompts
+}
+
 export interface VideoPrompts {
   veo: string
   sora: string
@@ -132,6 +141,7 @@ export interface VideoPrompts {
 export interface SceneAssets {
   directorScript?: string
   imagePrompt?: ImagePrompts
+  imagePromptCuts?: ImagePromptCut[]
   videoPrompt?: VideoPrompts
   storyboardFrames?: StoryboardFrame[]
   agentAnalysis?: string
@@ -233,6 +243,7 @@ export interface AgentResult {
   characterContext: CharacterContext
   directorScript: string
   imagePrompts: ImagePrompts
+  imagePromptCuts: ImagePromptCut[]
   videoPrompts: VideoPrompts
   storyboardFrames: StoryboardFrame[]
   validation: ValidationResult

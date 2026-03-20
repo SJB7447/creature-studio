@@ -112,11 +112,40 @@ export function AssetTabs({ scene }: { scene: Scene }) {
       {/* Image Prompts */}
       {activeTab === 'image' && assets.imagePrompt && (
         <div>
-          <h3 className="text-sm font-medium mb-4" style={{ color: 'var(--color-text)' }}>이미지 프롬프트</h3>
-          <CodeBlock label="기본 프롬프트" value={assets.imagePrompt.base} />
-          <CodeBlock label="Midjourney (파라미터 포함)" value={assets.imagePrompt.midjourney} />
-          <CodeBlock label="Google Imagen" value={assets.imagePrompt.imagen} />
-          <CodeBlock label="네거티브 프롬프트" value={assets.imagePrompt.negativePrompt} />
+          {/* 컷별 프롬프트가 있으면 컷별로 표시 */}
+          {assets.imagePromptCuts && assets.imagePromptCuts.length > 0 ? (
+            <div>
+              <h3 className="text-sm font-medium mb-4" style={{ color: 'var(--color-text)' }}>
+                이미지 프롬프트 ({assets.imagePromptCuts.length}컷)
+              </h3>
+              {assets.imagePromptCuts.map((cut) => (
+                <div key={cut.cutNumber} className="mb-6">
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="text-xs font-semibold px-2 py-0.5 rounded-full" style={{ background: 'var(--color-primary-light)', color: 'var(--color-primary-dark)' }}>
+                      컷 {cut.cutNumber}
+                    </span>
+                    <span className="text-[11px]" style={{ color: 'var(--color-text-sub)' }}>
+                      {cut.timeStart} ~ {cut.timeEnd}
+                    </span>
+                  </div>
+                  {cut.description && (
+                    <p className="text-xs mb-2 italic" style={{ color: 'var(--color-text-sub)' }}>{cut.description}</p>
+                  )}
+                  <CodeBlock label="Midjourney" value={cut.prompts.midjourney} />
+                  <CodeBlock label="Google Imagen" value={cut.prompts.imagen} />
+                  <CodeBlock label="네거티브" value={cut.prompts.negativePrompt} />
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div>
+              <h3 className="text-sm font-medium mb-4" style={{ color: 'var(--color-text)' }}>이미지 프롬프트</h3>
+              <CodeBlock label="기본 프롬프트" value={assets.imagePrompt.base} />
+              <CodeBlock label="Midjourney (파라미터 포함)" value={assets.imagePrompt.midjourney} />
+              <CodeBlock label="Google Imagen" value={assets.imagePrompt.imagen} />
+              <CodeBlock label="네거티브 프롬프트" value={assets.imagePrompt.negativePrompt} />
+            </div>
+          )}
         </div>
       )}
 

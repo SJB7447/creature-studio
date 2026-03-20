@@ -1,13 +1,15 @@
 import { Scene, SceneAnalysis, StoryboardFrame } from '@/types'
-import { formatDialoguesShort, formatTransform } from './helpers'
+import { formatDialoguesShort, formatTransform, calculateCutCount } from './helpers'
 
 export function buildStoryboardPrompt(
   scene: Scene,
   analysis: SceneAnalysis,
-  directorScript: string
+  directorScript: string,
+  cutCount?: number
 ): string {
   const dialogues = formatDialoguesShort(scene)
   const transform = formatTransform(scene)
+  const frameCount = cutCount || calculateCutCount(scene)
 
   return `당신은 전문 스토리보드 아티스트이자 시각 내러티브 전문가입니다.
 
@@ -31,7 +33,8 @@ ${transform}
 [연출 스크립트]
 ${directorScript.substring(0, 1000)}
 
-이 씬을 3~6개의 핵심 스토리보드 프레임으로 분해하세요.
+이 씬을 정확히 **${frameCount}개**의 핵심 스토리보드 프레임으로 분해하세요.
+(씬 길이 기반 자동 계산: 약 3초당 1컷)
 
 각 프레임은:
 - 씬의 감정 전환점이나 중요 액션 포인트에 배치

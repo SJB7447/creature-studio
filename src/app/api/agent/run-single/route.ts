@@ -4,9 +4,10 @@ import { Scene, Project, Character, SceneAnalysis, CharacterContext, ImagePrompt
 import { buildAnalyzePrompt, parseAnalysisResult } from '@/agents/steps/step1_analyze'
 import { buildCharacterContext } from '@/agents/steps/step2_characters'
 import { buildScriptPrompt } from '@/agents/steps/step3_script'
-import { buildImagePromptPrompt, parseImagePrompts } from '@/agents/steps/step4_imagePrompt'
+import { buildImagePromptPrompt, parseImagePrompts, buildImagePromptCutsPrompt, parseImagePromptCuts } from '@/agents/steps/step4_imagePrompt'
 import { buildVideoPromptPrompt, parseVideoPrompts } from '@/agents/steps/step5_videoPrompt'
 import { buildStoryboardPrompt, parseStoryboardFrames } from '@/agents/steps/step6_storyboard'
+import { calculateCutCount } from '@/agents/steps/helpers'
 
 type StepType = 'script' | 'imagePrompt' | 'videoPrompt' | 'storyboard'
 
@@ -61,7 +62,10 @@ export async function POST(req: NextRequest) {
       case 'imagePrompt': {
         const prompt = buildImagePromptPrompt(scene, project, analysis, characterContext)
         const raw = await callGeminiWithRetry(prompt)
-        result = { imagePrompts: parseImagePrompts(raw) }
+        const cutCount = calculateCutCount(scene)
+        const cutsPrompt = buildImagePromptCutsPrompt(scene, project, analysis, characterContext, cutCount)
+        const cutsRaw = await callGeminiWithRetry(cutsPrompt)
+        result = { imagePrompts: parseImagePrompts(raw), imagePromptCuts: parseImagePromptCuts(cutsRaw) }
         break
       }
 
@@ -75,7 +79,8 @@ export async function POST(req: NextRequest) {
 
       case 'storyboard': {
         const directorScript = previousResults?.directorScript || ''
-        const prompt = buildStoryboardPrompt(scene, analysis, directorScript)
+        const cutCount = calculateCutCount(scene)
+        const prompt = buildStoryboardPrompt(scene, analysis, directorScript, cutCount)
         const raw = await callGeminiWithRetry(prompt)
         result = { storyboardFrames: parseStoryboardFrames(raw) }
         break
