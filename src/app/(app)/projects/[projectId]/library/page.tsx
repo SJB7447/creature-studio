@@ -5,7 +5,7 @@ import { useQuery } from '@tanstack/react-query'
 import { getEpisodes, getScenes } from '@/lib/firestore'
 import { Scene } from '@/types'
 import { useState, useEffect, useMemo } from 'react'
-import { Search, Copy, CheckCircle, Download, Star, ChevronDown, ExternalLink } from 'lucide-react'
+import { Search, Copy, CheckCircle, Download, Star, ChevronDown, ChevronRight, ExternalLink, Film, Layers } from 'lucide-react'
 import { motion } from 'framer-motion'
 import { cn } from '@/lib/utils'
 import { toast } from 'sonner'
@@ -61,6 +61,8 @@ export default function LibraryPage() {
   const [favoritesOnly, setFavoritesOnly] = useState(false)
   const [favorites, setFavorites] = useState<Set<string>>(new Set())
   const [expanded, setExpanded] = useState<Set<string>>(new Set())
+  const [collapsedEpisodes, setCollapsedEpisodes] = useState<Set<string>>(new Set())
+  const [collapsedScenes, setCollapsedScenes] = useState<Set<string>>(new Set())
   const [exportOpen, setExportOpen] = useState(false)
 
   // Load favorites from localStorage
@@ -269,7 +271,7 @@ export default function LibraryPage() {
         </button>
       </div>
 
-      {/* Items */}
+      {/* Items — grouped by episode → scene */}
       {isLoading ? (
         <div className="space-y-3">
           {[1,2,3].map(i => <div key={i} className="h-28 rounded-xl border animate-pulse" style={{ background: 'var(--color-surface)', borderColor: 'var(--color-border)' }} />)}
@@ -278,57 +280,115 @@ export default function LibraryPage() {
         <div className="text-center py-16" style={{ color: 'var(--color-text-sub)' }}>
           {items.length === 0 ? '아직 생성된 에셋이 없습니다. 씬 에디터에서 AI 에이전트를 실행해보세요.' : '검색 결과가 없습니다.'}
         </div>
-      ) : (
-        <div className="space-y-3">
-          {filtered.map((item, i) => {
-            const isExpanded = expanded.has(item.id)
-            const colors = TYPE_COLORS[item.type as string] || TYPE_COLORS.script
-            return (
-              <motion.div key={item.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: i * 0.02 }}
-                className="p-4 rounded-xl border transition-colors"
-                style={{ background: 'var(--color-surface)', borderColor: 'var(--color-border)' }}
-              >
-                <div className="flex items-start gap-3">
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-1.5 flex-wrap">
-                      <span className="text-xs" style={{ color: 'var(--color-text-sub)' }}>EP.{item.episodeNumber}</span>
-                      <span className="text-xs font-medium" style={{ color: 'var(--color-text)' }}>S{item.sceneNumber} {item.sceneTitle}</span>
-                      <span className="text-xs px-1.5 py-0.5 rounded" style={{ background: colors.bg, color: colors.text }}>{item.label}</span>
-                      {item.platform !== 'all' && (
-                        <span className="text-xs px-1.5 py-0.5 rounded" style={{ background: 'var(--color-surface-2)', color: 'var(--color-text-sub)' }}>{item.platform}</span>
-                      )}
+      ) : (() => {
+        // Group: episode → scene → items
+        const epMap = new Map<string, { epNum: number; epTitle: string; epId: string; scenes: Map<string, { sceneNum: number; sceneTitle: string; sceneId: string; epId: string; items: LibraryItem[] }> }>()
+        for (const item of filtered) {
+          const epKey = item.episodeId
+          if (!epMap.has(epKey)) epMap.set(epKey, { epNum: item.episodeNumber, epTitle: item.episodeTitle, epId: item.episodeId, scenes: new Map() })
+          const ep = epMap.get(epKey)!
+          const sceneKey = item.sceneId
+          if (!ep.scenes.has(sceneKey)) ep.scenes.set(sceneKey, { sceneNum: item.sceneNumber, sceneTitle: item.sceneTitle, sceneId: item.sceneId, epId: item.episodeId, items: [] })
+          ep.scenes.get(sceneKey)!.items.push(item)
+        }
+        const episodes = Array.from(epMap.values()).sort((a, b) => a.epNum - b.epNum)
+
+        return (
+          <div className="space-y-3">
+            {episodes.map(ep => {
+              const epCollapsed = collapsedEpisodes.has(ep.epId)
+              const scenes = Array.from(ep.scenes.values()).sort((a, b) => a.sceneNum - b.sceneNum)
+              const totalItems = scenes.reduce((n, s) => n + s.items.length, 0)
+
+              return (
+                <div key={ep.epId} className="rounded-xl border overflow-hidden" style={{ borderColor: 'var(--color-border)' }}>
+                  {/* Episode header */}
+                  <button
+                    onClick={() => setCollapsedEpisodes(prev => { const n = new Set(prev); n.has(ep.epId) ? n.delete(ep.epId) : n.add(ep.epId); return n })}
+                    className="w-full flex items-center gap-3 px-4 py-3 text-left hover:opacity-80 transition-opacity"
+                    style={{ background: 'var(--color-surface-2)' }}
+                  >
+                    <Film className="w-4 h-4 shrink-0" style={{ color: '#7C3AED' }} />
+                    <span className="text-xs font-bold px-1.5 py-0.5 rounded" style={{ background: '#EDE9FE', color: '#7C3AED' }}>EP.{ep.epNum}</span>
+                    <span className="font-medium text-sm flex-1 truncate" style={{ color: 'var(--color-text)' }}>{ep.epTitle}</span>
+                    <span className="text-xs shrink-0" style={{ color: 'var(--color-text-sub)' }}>{scenes.length}씬 · {totalItems}개</span>
+                    {epCollapsed ? <ChevronRight className="w-4 h-4 shrink-0" style={{ color: 'var(--color-text-sub)' }} /> : <ChevronDown className="w-4 h-4 shrink-0" style={{ color: 'var(--color-text-sub)' }} />}
+                  </button>
+
+                  {/* Scenes */}
+                  {!epCollapsed && (
+                    <div className="divide-y" style={{ borderColor: 'var(--color-border)' }}>
+                      {scenes.map(scene => {
+                        const sceneKey = `${ep.epId}-${scene.sceneId}`
+                        const sceneCollapsed = collapsedScenes.has(sceneKey)
+
+                        return (
+                          <div key={scene.sceneId}>
+                            {/* Scene header */}
+                            <button
+                              onClick={() => setCollapsedScenes(prev => { const n = new Set(prev); n.has(sceneKey) ? n.delete(sceneKey) : n.add(sceneKey); return n })}
+                              className="w-full flex items-center gap-3 px-4 py-2.5 text-left hover:opacity-80 transition-opacity"
+                              style={{ background: 'var(--color-surface)' }}
+                            >
+                              <Layers className="w-3.5 h-3.5 shrink-0 ml-4" style={{ color: 'var(--color-text-sub)' }} />
+                              <span className="text-xs font-medium px-1.5 py-0.5 rounded" style={{ background: 'var(--color-surface-2)', color: 'var(--color-text-sub)' }}>S{scene.sceneNum}</span>
+                              <span className="text-sm flex-1 truncate" style={{ color: 'var(--color-text)' }}>{scene.sceneTitle}</span>
+                              <span className="text-xs shrink-0" style={{ color: 'var(--color-text-sub)' }}>{scene.items.length}개</span>
+                              <Link
+                                href={`/projects/${projectId}/episodes/${scene.epId}/scenes/${scene.sceneId}`}
+                                onClick={e => e.stopPropagation()}
+                                className="p-1 rounded hover:opacity-70 shrink-0"
+                              >
+                                <ExternalLink className="w-3 h-3" style={{ color: 'var(--color-text-sub)' }} />
+                              </Link>
+                              {sceneCollapsed ? <ChevronRight className="w-3.5 h-3.5 shrink-0" style={{ color: 'var(--color-text-sub)' }} /> : <ChevronDown className="w-3.5 h-3.5 shrink-0" style={{ color: 'var(--color-text-sub)' }} />}
+                            </button>
+
+                            {/* Items inside scene */}
+                            {!sceneCollapsed && (
+                              <div className="divide-y" style={{ borderColor: 'var(--color-border)', background: 'var(--color-surface)' }}>
+                                {scene.items.map(item => {
+                                  const isExpanded = expanded.has(item.id)
+                                  const colors = TYPE_COLORS[item.type as string] || TYPE_COLORS.script
+                                  return (
+                                    <div key={item.id} className="flex items-start gap-3 px-6 py-3 pl-14">
+                                      <div className="flex-1 min-w-0">
+                                        <div className="flex items-center gap-2 mb-1.5 flex-wrap">
+                                          <span className="text-xs px-1.5 py-0.5 rounded" style={{ background: colors.bg, color: colors.text }}>{item.label}</span>
+                                          {item.platform !== 'all' && (
+                                            <span className="text-xs px-1.5 py-0.5 rounded" style={{ background: 'var(--color-surface-2)', color: 'var(--color-text-sub)' }}>{item.platform}</span>
+                                          )}
+                                        </div>
+                                        <div className="cursor-pointer" onClick={() => setExpanded(prev => { const n = new Set(prev); n.has(item.id) ? n.delete(item.id) : n.add(item.id); return n })}>
+                                          <p className={cn('text-xs font-mono leading-relaxed', isExpanded ? 'whitespace-pre-wrap' : 'line-clamp-2')} style={{ color: 'var(--color-text-sub)' }}>{item.content}</p>
+                                          {!isExpanded && item.content.split('\n').length > 2 && (
+                                            <span className="text-xs mt-0.5 inline-block" style={{ color: 'var(--color-primary-dark)' }}>더보기</span>
+                                          )}
+                                        </div>
+                                      </div>
+                                      <div className="flex gap-0.5 shrink-0">
+                                        <CopyBtn text={item.content} />
+                                        <button onClick={() => toggleFavorite(item.id)} className="p-1.5 rounded-md hover:opacity-70 transition-colors">
+                                          <Star className="w-3.5 h-3.5" fill={favorites.has(item.id) ? '#EAB308' : 'none'}
+                                            style={{ color: favorites.has(item.id) ? '#EAB308' : 'var(--color-text-sub)' }} />
+                                        </button>
+                                      </div>
+                                    </div>
+                                  )
+                                })}
+                              </div>
+                            )}
+                          </div>
+                        )
+                      })}
                     </div>
-                    <div className="cursor-pointer" onClick={() => {
-                      setExpanded(prev => {
-                        const next = new Set(prev)
-                        if (next.has(item.id)) next.delete(item.id); else next.add(item.id)
-                        return next
-                      })
-                    }}>
-                      <p className={cn('text-xs font-mono', isExpanded ? 'whitespace-pre-wrap' : 'line-clamp-3')}
-                        style={{ color: 'var(--color-text-sub)' }}>{item.content}</p>
-                      {!isExpanded && item.content.split('\n').length > 3 && (
-                        <span className="text-xs mt-1 inline-block" style={{ color: 'var(--color-primary-dark)' }}>더보기</span>
-                      )}
-                    </div>
-                  </div>
-                  <div className="flex flex-col gap-1 shrink-0">
-                    <CopyBtn text={item.content} />
-                    <button onClick={() => toggleFavorite(item.id)} className="p-1.5 rounded-md hover:opacity-70 transition-colors">
-                      <Star className="w-3.5 h-3.5" fill={favorites.has(item.id) ? '#EAB308' : 'none'}
-                        style={{ color: favorites.has(item.id) ? '#EAB308' : 'var(--color-text-sub)' }} />
-                    </button>
-                    <Link href={`/projects/${projectId}/episodes/${item.episodeId}/scenes/${item.sceneId}`}
-                      className="p-1.5 rounded-md hover:opacity-70 transition-colors">
-                      <ExternalLink className="w-3.5 h-3.5" style={{ color: 'var(--color-text-sub)' }} />
-                    </Link>
-                  </div>
+                  )}
                 </div>
-              </motion.div>
-            )
-          })}
-        </div>
-      )}
+              )
+            })}
+          </div>
+        )
+      })()}
     </div>
   )
 }
