@@ -9,9 +9,11 @@ import {
   cancelInvitation,
   removeCollaborator,
   getUserProfiles,
+  getUserProfile,
+  transferOwnership,
 } from '@/lib/firestore'
 import { Project, Invitation, UserProfile, CollaboratorRole } from '@/types'
-import { UserPlus, X, Mail, Crown, Eye, Edit3, Loader2, Users, Clock, CheckCircle, XCircle } from 'lucide-react'
+import { UserPlus, X, Mail, Crown, Edit3, Loader2, Users, Clock, ArrowLeftRight } from 'lucide-react'
 import { toast } from 'sonner'
 import { motion, AnimatePresence } from 'framer-motion'
 
@@ -31,6 +33,13 @@ export function CollaboratorPanel({ project, projectId }: Props) {
   const [email, setEmail] = useState('')
   const [role, setRole] = useState<CollaboratorRole>('editor')
   const isOwner = user?.uid === project.ownerId
+
+  // 실제 소유자 프로필 조회
+  const { data: ownerProfile } = useQuery({
+    queryKey: ['user-profile', project.ownerId],
+    queryFn: () => getUserProfile(project.ownerId),
+    enabled: !!project.ownerId,
+  })
 
   // 현재 협업자 프로필 조회
   const { data: collaboratorProfiles = [] } = useQuery({
@@ -80,6 +89,19 @@ export function CollaboratorPanel({ project, projectId }: Props) {
     },
   })
 
+  // 소유권 이전
+  const transferMutation = useMutation({
+    mutationFn: (newOwnerId: string) => transferOwnership(projectId, newOwnerId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['project', projectId] })
+      queryClient.invalidateQueries({ queryKey: ['collaborator-profiles', projectId] })
+      queryClient.invalidateQueries({ queryKey: ['user-profile', project.ownerId] })
+      queryClient.invalidateQueries({ queryKey: ['projects'] })
+      toast.success('소유권이 이전되었습니다.')
+    },
+    onError: (e: any) => toast.error(e.message),
+  })
+
   // 협업자 제거
   const removeMutation = useMutation({
     mutationFn: (uid: string) => removeCollaborator(projectId, uid),
@@ -102,19 +124,19 @@ export function CollaboratorPanel({ project, projectId }: Props) {
       {/* 소유자 */}
       <div className="space-y-2">
         <div className="flex items-center gap-3 p-3 rounded-lg" style={{ background: 'var(--color-surface-2)' }}>
-          {user?.photoURL ? (
-            <img src={user.photoURL} alt="" className="w-8 h-8 rounded-full" />
+          {ownerProfile?.photoURL ? (
+            <img src={ownerProfile.photoURL} alt="" className="w-8 h-8 rounded-full" />
           ) : (
             <div className="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold" style={{ background: 'var(--color-primary-dark)' }}>
-              {user?.displayName?.[0] || 'U'}
+              {ownerProfile?.displayName?.[0] || 'O'}
             </div>
           )}
           <div className="flex-1 min-w-0">
             <p className="text-sm font-medium truncate" style={{ color: 'var(--color-text)' }}>
-              {user?.uid === project.ownerId ? user?.displayName : '소유자'}
+              {ownerProfile?.displayName || '소유자'}
             </p>
             <p className="text-xs truncate" style={{ color: 'var(--color-text-sub)' }}>
-              {user?.uid === project.ownerId ? user?.email : ''}
+              {ownerProfile?.email || ''}
             </p>
           </div>
           <span className="flex items-center gap-1 text-xs px-2 py-0.5 rounded-full shrink-0" style={{ background: '#EDE9FE', color: '#7C3AED' }}>
@@ -148,16 +170,30 @@ export function CollaboratorPanel({ project, projectId }: Props) {
                 <Edit3 className="w-3 h-3" />편집자
               </span>
               {isOwner && (
-                <button
-                  onClick={() => {
-                    if (confirm(`"${profile.displayName}"을(를) 프로젝트에서 제거할까요?`)) {
-                      removeMutation.mutate(profile.uid)
-                    }
-                  }}
-                  className="p-1.5 rounded-md hover:opacity-70 shrink-0"
-                >
-                  <X className="w-3.5 h-3.5" style={{ color: '#EF4444' }} />
-                </button>
+                <>
+                  <button
+                    onClick={() => {
+                      if (confirm(`"${profile.displayName}"에게 소유권을 이전할까요?\n이전하면 나는 편집자로 변경됩니다.`)) {
+                        transferMutation.mutate(profile.uid)
+                      }
+                    }}
+                    disabled={transferMutation.isPending}
+                    className="p-1.5 rounded-md hover:opacity-70 shrink-0"
+                    title="소유권 이전"
+                  >
+                    <ArrowLeftRight className="w-3.5 h-3.5" style={{ color: '#7C3AED' }} />
+                  </button>
+                  <button
+                    onClick={() => {
+                      if (confirm(`"${profile.displayName}"을(를) 프로젝트에서 제거할까요?`)) {
+                        removeMutation.mutate(profile.uid)
+                      }
+                    }}
+                    className="p-1.5 rounded-md hover:opacity-70 shrink-0"
+                  >
+                    <X className="w-3.5 h-3.5" style={{ color: '#EF4444' }} />
+                  </button>
+                </>
               )}
             </motion.div>
           ))}

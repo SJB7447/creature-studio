@@ -411,6 +411,14 @@ export async function removeCollaborator(projectId: string, userId: string): Pro
   })
 }
 
+export async function transferOwnership(projectId: string, newOwnerId: string): Promise<void> {
+  await updateDoc(doc(db, 'projects', projectId), {
+    ownerId: newOwnerId,
+    collaborators: arrayRemove(newOwnerId),
+    updatedAt: serverTimestamp(),
+  })
+}
+
 // ─── Scene Assets Update ──────────────────────────────────────
 export async function updateSceneAssets(
   projectId: string,
