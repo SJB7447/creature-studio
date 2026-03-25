@@ -30,6 +30,11 @@ service cloud.firestore {
       match /characters/{characterId} {
         allow read, write: if request.auth != null;
       }
+
+      // Confirmed Assets
+      match /confirmedAssets/{assetId} {
+        allow read, write: if request.auth != null;
+      }
     }
   }
 }
