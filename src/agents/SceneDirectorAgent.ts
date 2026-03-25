@@ -1,5 +1,5 @@
 import {
-  Scene, Project, Character,
+  Scene, Project, Character, ConfirmedAsset,
   AgentResult, AgentStepInfo, AgentProgress, AgentStepName,
   SceneAnalysis, CharacterContext, ImagePrompts, ImagePromptCut, VideoPrompts, StoryboardFrame, ValidationResult,
 } from '@/types'
@@ -49,7 +49,8 @@ export class SceneDirectorAgent {
   async run(
     scene: Scene,
     project: Project,
-    characters: Character[]
+    characters: Character[],
+    confirmedAssets: ConfirmedAsset[] = []
   ): Promise<AgentResult> {
     const steps: AgentStepInfo[] = [
       { id: 'analyze', label: '씬 감정 흐름 분석 중...', status: 'pending' },
@@ -107,7 +108,7 @@ export class SceneDirectorAgent {
     steps[2].status = 'running'
     this.report('scripting', 3, '연출 스크립트 작성 중...')
     try {
-      const prompt = buildScriptPrompt(scene, project, analysis, characterContext)
+      const prompt = buildScriptPrompt(scene, project, analysis, characterContext, confirmedAssets)
       directorScript = await callGemini(prompt)
       steps[2].status = 'done'
       steps[2].result = '연출 스크립트 생성 완료'
@@ -124,12 +125,12 @@ export class SceneDirectorAgent {
     this.report('imagePrompt', 4, `이미지 프롬프트 생성 중... (${cutCount}컷)`)
     try {
       // 대표 프롬프트 1세트 (하위 호환용)
-      const prompt = buildImagePromptPrompt(scene, project, analysis, characterContext)
+      const prompt = buildImagePromptPrompt(scene, project, analysis, characterContext, confirmedAssets)
       const raw = await callGemini(prompt)
       imagePrompts = parseImagePrompts(raw)
 
       // 컷별 프롬프트 생성
-      const cutsPrompt = buildImagePromptCutsPrompt(scene, project, analysis, characterContext, cutCount)
+      const cutsPrompt = buildImagePromptCutsPrompt(scene, project, analysis, characterContext, cutCount, confirmedAssets)
       const cutsRaw = await callGemini(cutsPrompt)
       imagePromptCuts = parseImagePromptCuts(cutsRaw)
 

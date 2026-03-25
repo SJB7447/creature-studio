@@ -1,16 +1,40 @@
-import { Scene, Project, SceneAnalysis, CharacterContext, ImagePrompts, ImagePromptCut } from '@/types'
+import { Scene, Project, SceneAnalysis, CharacterContext, ImagePrompts, ImagePromptCut, ConfirmedAsset } from '@/types'
 import { calculateCutCount, parseTimecode } from './helpers'
+
+function buildConfirmedAssetBlock(confirmedAssets: ConfirmedAsset[]): string {
+  if (confirmedAssets.length === 0) return ''
+  const chars = confirmedAssets.filter(a => a.category === 'character')
+  const bgs = confirmedAssets.filter(a => a.category === 'background')
+  const props = confirmedAssets.filter(a => a.category === 'prop')
+  const effects = confirmedAssets.filter(a => a.category === 'effect')
+
+  return `
+[★ 확정 에셋 — 프롬프트에 반드시 반영할 확정된 비주얼 요소]
+${chars.length > 0 ? `▸ 확정 캐릭터 (외형 키워드 그대로 사용):
+${chars.map(a => `  - ${a.name}: ${a.prompt || a.description || '(확정 이미지 있음)'}`).join('\n')}` : ''}
+${bgs.length > 0 ? `▸ 확정 배경:
+${bgs.map(a => `  - ${a.name}: ${a.prompt || a.description || '(확정 이미지 있음)'}`).join('\n')}` : ''}
+${props.length > 0 ? `▸ 확정 소품/오브젝트:
+${props.map(a => `  - ${a.name}: ${a.prompt || a.description || '(확정 이미지 있음)'}`).join('\n')}` : ''}
+${effects.length > 0 ? `▸ 확정 이펙트:
+${effects.map(a => `  - ${a.name}: ${a.prompt || a.description || '(확정 이미지 있음)'}`).join('\n')}` : ''}
+→ 확정 에셋의 비주얼 키워드는 모든 프롬프트에 그대로 포함하여 작품 전체의 일관성을 유지하세요.
+`
+}
 
 /** 기존 단일 이미지 프롬프트 빌더 (하위 호환용, 대표 1장) */
 export function buildImagePromptPrompt(
   scene: Scene,
   project: Project,
   analysis: SceneAnalysis,
-  characterContext: CharacterContext
+  characterContext: CharacterContext,
+  confirmedAssets: ConfirmedAsset[] = []
 ): string {
   const charKeywords = characterContext.characters
     .map(c => `${c.name}: ${c.keywords.join(', ')}`)
     .join('\n')
+
+  const confirmedBlock = buildConfirmedAssetBlock(confirmedAssets)
 
   return `당신은 AI 이미지 생성 전문 프롬프트 엔지니어입니다.
 Midjourney, Google Imagen, Stable Diffusion 등의 도구에 정통합니다.
@@ -38,7 +62,7 @@ ${charKeywords || '(캐릭터 없음)'}
 [씬 분석]
 핵심 시각적 순간: ${analysis.keyVisualMoment}
 감정 흐름: ${analysis.emotionFlow}
-
+${confirmedBlock}
 ${scene.isAITransformScene && scene.transform ? `[AI 변환 씬 — 변환 후 상태를 중심으로 프롬프트 생성]
 변환 후: ${scene.transform.stateAfter}
 방식: ${scene.transform.transitionStyle}
@@ -53,6 +77,7 @@ ${scene.isAITransformScene && scene.transform ? `[AI 변환 씬 — 변환 후 �
 }
 
 중요:
+- 확정 에셋의 비주얼 키워드를 최우선으로 반영 (일관성 유지)
 - 캐릭터의 고정 프롬프트 키워드를 반드시 포함
 - 작품의 아트 스타일을 정확히 반영
 - 금지 요소는 반드시 네거티브 프롬프트에 포함
@@ -65,11 +90,14 @@ export function buildImagePromptCutsPrompt(
   project: Project,
   analysis: SceneAnalysis,
   characterContext: CharacterContext,
-  cutCount: number
+  cutCount: number,
+  confirmedAssets: ConfirmedAsset[] = []
 ): string {
   const charKeywords = characterContext.characters
     .map(c => `${c.name}: ${c.keywords.join(', ')}`)
     .join('\n')
+
+  const confirmedBlock = buildConfirmedAssetBlock(confirmedAssets)
 
   const startSec = parseTimecode(scene.timeStart)
   const endSec = parseTimecode(scene.timeEnd)
@@ -117,7 +145,7 @@ ${charKeywords || '(캐릭터 없음)'}
 [씬 분석]
 핵심 시각적 순간: ${analysis.keyVisualMoment}
 감정 흐름: ${analysis.emotionFlow}
-
+${confirmedBlock}
 ${scene.isAITransformScene && scene.transform ? `[AI 변환 씬]
 변환 전: ${scene.transform.stateBefore}
 변환 후: ${scene.transform.stateAfter}
@@ -145,6 +173,7 @@ ${cutTimeRanges}
 ]
 
 중요:
+- 확정 에셋의 비주얼 키워드를 최우선으로 모든 컷에 반영 (일관성 유지)
 - 각 컷은 시간 순서대로 장면이 자연스럽게 이어져야 함
 - 캐릭터의 고정 프롬프트 키워드를 모든 컷에 반드시 포함
 - 작품의 아트 스타일을 모든 컷에 정확히 반영

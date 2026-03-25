@@ -1,13 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { SceneDirectorAgent } from '@/agents/SceneDirectorAgent'
-import { Scene, Project, Character, AgentProgress } from '@/types'
+import { Scene, Project, Character, ConfirmedAsset, AgentProgress } from '@/types'
 
 export async function POST(req: NextRequest) {
   try {
-    const { scene, project, characters } = await req.json() as {
+    const { scene, project, characters, confirmedAssets } = await req.json() as {
       scene: Scene
       project: Project
       characters: Character[]
+      confirmedAssets?: ConfirmedAsset[]
     }
 
     if (!scene || !project) {
@@ -23,7 +24,7 @@ export async function POST(req: NextRequest) {
         })
 
         try {
-          const result = await agent.run(scene, project, characters || [])
+          const result = await agent.run(scene, project, characters || [], confirmedAssets || [])
           const data = JSON.stringify({ type: 'result', result })
           controller.enqueue(encoder.encode(`data: ${data}\n\n`))
         } catch (error: any) {

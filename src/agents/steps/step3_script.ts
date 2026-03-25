@@ -1,13 +1,35 @@
-import { Scene, Project, SceneAnalysis, CharacterContext } from '@/types'
+import { Scene, Project, SceneAnalysis, CharacterContext, ConfirmedAsset } from '@/types'
 import { formatSceneInfo } from './helpers'
 
 export function buildScriptPrompt(
   scene: Scene,
   project: Project,
   analysis: SceneAnalysis,
-  characterContext: CharacterContext
+  characterContext: CharacterContext,
+  confirmedAssets: ConfirmedAsset[] = []
 ): string {
   const sceneInfo = formatSceneInfo(scene)
+
+  const chars = confirmedAssets.filter(a => a.category === 'character')
+  const bgs = confirmedAssets.filter(a => a.category === 'background')
+  const props = confirmedAssets.filter(a => a.category === 'prop')
+  const sounds = confirmedAssets.filter(a => a.category === 'sound')
+  const effects = confirmedAssets.filter(a => a.category === 'effect')
+
+  const confirmedBlock = confirmedAssets.length > 0 ? `
+[★ 확정 에셋 — 반드시 연출에 반영해야 할 확정된 시각/음향 요소]
+${chars.length > 0 ? `▸ 확정 캐릭터 비주얼 (외형 절대 변경 불가)
+${chars.map(a => `  - ${a.name}: ${a.prompt || a.description || '(참조 이미지 있음)'}`).join('\n')}` : ''}
+${bgs.length > 0 ? `▸ 확정 배경 비주얼
+${bgs.map(a => `  - ${a.name}: ${a.prompt || a.description || '(참조 이미지 있음)'}`).join('\n')}` : ''}
+${props.length > 0 ? `▸ 확정 소품/오브젝트
+${props.map(a => `  - ${a.name}: ${a.description || '(참조 이미지 있음)'}`).join('\n')}` : ''}
+${sounds.length > 0 ? `▸ 확정 사운드 에셋 (BGM/효과음 섹션에 명시)
+${sounds.map(a => `  - ${a.name}: ${a.description}`).join('\n')}` : ''}
+${effects.length > 0 ? `▸ 확정 이펙트
+${effects.map(a => `  - ${a.name}: ${a.description || '(참조 이미지 있음)'}`).join('\n')}` : ''}
+→ 확정 에셋은 프로젝트 전체의 비주얼/음향 일관성 기준입니다. 연출 스크립트의 각 비트에서 해당 에셋을 구체적으로 언급하세요.
+` : ''
 
   return `당신은 20년 경력의 베테랑 애니메이션 감독입니다.
 
@@ -30,7 +52,7 @@ ${sceneInfo}
 
 [등장 캐릭터]
 ${characterContext.context}
-
+${confirmedBlock}
 위 씬에 대한 **상세 연출 스크립트**를 작성하세요.
 
 형식:

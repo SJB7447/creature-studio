@@ -10,13 +10,17 @@ import { motion, AnimatePresence } from 'framer-motion'
 import {
   Plus, Trash2, X, Edit3, Lock, Upload, Loader2,
   Image, Volume2, Paintbrush, Sparkles, Search, Filter,
-  Play, Pause, Tag, CheckCircle2
+  Play, Pause, Tag, CheckCircle2, User, FileText
 } from 'lucide-react'
 import { toast } from 'sonner'
 
 const CATEGORY_CONFIG: Record<ConfirmedAssetCategory, {
   label: string; icon: typeof Image; color: string; bgColor: string; accept: string; desc: string
 }> = {
+  character: {
+    label: '캐릭터', icon: User, color: '#DB2777', bgColor: '#FCE7F3',
+    accept: '.png,.jpg,.jpeg,.webp', desc: '확정된 캐릭터 디자인/외형',
+  },
   background: {
     label: '배경', icon: Image, color: '#0369A1', bgColor: '#E0F2FE',
     accept: '.png,.jpg,.jpeg,.webp', desc: '확정된 배경/환경 이미지',
@@ -35,7 +39,7 @@ const CATEGORY_CONFIG: Record<ConfirmedAssetCategory, {
   },
 }
 
-const ALL_CATEGORIES: ConfirmedAssetCategory[] = ['background', 'sound', 'prop', 'effect']
+const ALL_CATEGORIES: ConfirmedAssetCategory[] = ['character', 'background', 'sound', 'prop', 'effect']
 
 // ─── Asset Modal ──────────────────────────────────────────────
 function AssetModal({
@@ -45,9 +49,10 @@ function AssetModal({
 }) {
   const queryClient = useQueryClient()
   const [name, setName] = useState(editAsset?.name || '')
-  const [category, setCategory] = useState<ConfirmedAssetCategory>(editAsset?.category || 'background')
+  const [category, setCategory] = useState<ConfirmedAssetCategory>(editAsset?.category || 'character')
   const [description, setDescription] = useState(editAsset?.description || '')
   const [tags, setTags] = useState(editAsset?.tags?.join(', ') || '')
+  const [prompt, setPrompt] = useState(editAsset?.prompt || '')
   const [fileUrl, setFileUrl] = useState(editAsset?.fileUrl || '')
   const [thumbnailUrl, setThumbnailUrl] = useState(editAsset?.thumbnailUrl || '')
   const [fileType, setFileType] = useState(editAsset?.fileType || '')
@@ -99,6 +104,7 @@ function AssetModal({
         thumbnailUrl: thumbnailUrl || undefined,
         fileType,
         tags: tags.split(',').map(t => t.trim()).filter(Boolean),
+        prompt: prompt.trim() || undefined,
       }
 
       if (editAsset) {
@@ -180,7 +186,7 @@ function AssetModal({
             {/* Category select */}
             <div>
               <label className="block text-xs mb-1.5" style={{ color: 'var(--color-text-sub)' }}>카테고리 *</label>
-              <div className="grid grid-cols-4 gap-2">
+              <div className="grid grid-cols-5 gap-2">
                 {ALL_CATEGORIES.map(cat => {
                   const c = CATEGORY_CONFIG[cat]
                   const active = category === cat
@@ -225,6 +231,17 @@ function AssetModal({
               <input value={tags} onChange={e => setTags(e.target.value)}
                 placeholder="숲, 낮, 밝은분위기, EP1..."
                 className={inputCls} style={inputStyle} />
+            </div>
+
+            {/* Prompt */}
+            <div>
+              <label className="flex items-center gap-1.5 text-xs mb-1.5" style={{ color: 'var(--color-text-sub)' }}>
+                <FileText className="w-3.5 h-3.5" />
+                이미지 프롬프트 (AI 생성용)
+              </label>
+              <textarea value={prompt} onChange={e => setPrompt(e.target.value)}
+                rows={4} placeholder="이 에셋을 AI로 재현할 때 사용할 프롬프트를 입력하세요.&#10;예: a young female character with short brown hair, wearing a white lab coat, anime style, soft lighting..."
+                className={`${inputCls} resize-none font-mono text-[11px] leading-relaxed`} style={inputStyle} />
             </div>
 
             {/* Actions */}
@@ -327,6 +344,15 @@ function AssetCard({
         {asset.description && (
           <p className="text-xs line-clamp-2 mt-1" style={{ color: 'var(--color-text-sub)' }}>{asset.description}</p>
         )}
+        {asset.prompt && (
+          <div className="mt-2 rounded-lg p-2" style={{ background: 'var(--color-surface-2)' }}>
+            <div className="flex items-center gap-1 mb-1">
+              <FileText className="w-3 h-3 shrink-0" style={{ color: 'var(--color-text-sub)' }} />
+              <span className="text-[10px] font-medium" style={{ color: 'var(--color-text-sub)' }}>프롬프트</span>
+            </div>
+            <p className="text-[10px] font-mono line-clamp-3 leading-relaxed" style={{ color: 'var(--color-text-sub)' }}>{asset.prompt}</p>
+          </div>
+        )}
         {asset.tags?.length > 0 && (
           <div className="flex flex-wrap gap-1 mt-2">
             {asset.tags.map(tag => (
@@ -391,7 +417,7 @@ export default function ConfirmedAssetsPage() {
             <h1 className="text-xl font-bold" style={{ color: 'var(--color-text)' }}>확정 에셋</h1>
           </div>
           <p className="text-sm mt-0.5" style={{ color: 'var(--color-text-sub)' }}>
-            디자인이 확정된 배경, 사운드, 소품 등을 관리합니다. 일관성 유지의 기준이 됩니다.
+            디자인이 확정된 캐릭터, 배경, 사운드, 소품 등을 관리합니다. 이미지와 프롬프트를 함께 저장해 일관성을 유지합니다.
           </p>
         </div>
         <button
@@ -405,7 +431,7 @@ export default function ConfirmedAssetsPage() {
       </div>
 
       {/* Category summary cards */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 mb-6">
         {ALL_CATEGORIES.map(cat => {
           const c = CATEGORY_CONFIG[cat]
           const count = categoryCounts[cat] || 0
@@ -469,7 +495,7 @@ export default function ConfirmedAssetsPage() {
               <Lock className="w-10 h-10 mb-3" style={{ color: 'var(--color-text-sub)' }} />
               <p className="text-sm" style={{ color: 'var(--color-text-sub)' }}>등록된 확정 에셋이 없습니다.</p>
               <p className="text-xs mt-1" style={{ color: 'var(--color-text-sub)' }}>
-                배경, 사운드, 소품 등의 디자인이 확정되면 여기에 등록하세요.
+                캐릭터, 배경, 사운드, 소품 등의 디자인이 확정되면 여기에 등록하세요.
               </p>
               <button onClick={() => setModalOpen(true)}
                 className="mt-4 flex items-center gap-2 px-4 py-2 rounded-lg text-white text-sm"

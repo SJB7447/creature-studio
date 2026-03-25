@@ -71,7 +71,7 @@ export interface Character {
   createdAt: Timestamp
 }
 
-export type ConfirmedAssetCategory = 'background' | 'sound' | 'prop' | 'effect'
+export type ConfirmedAssetCategory = 'character' | 'background' | 'sound' | 'prop' | 'effect'
 
 export interface ConfirmedAsset {
   id: string
@@ -82,6 +82,7 @@ export interface ConfirmedAsset {
   thumbnailUrl?: string
   fileType: string
   tags: string[]
+  prompt?: string
   confirmedAt: Timestamp
   createdAt: Timestamp
 }
