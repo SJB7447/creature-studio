@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { callGeminiWithRetry } from '@/lib/gemini'
-import { Scene, Project, Character, SceneAnalysis, CharacterContext, ImagePrompts, VideoPrompts } from '@/types'
+import { Scene, Project, Character, SceneAnalysis, CharacterContext, ImagePrompts, VideoPrompts, StoryboardFrame } from '@/types'
 import { buildAnalyzePrompt, parseAnalysisResult } from '@/agents/steps/step1_analyze'
 import { buildCharacterContext } from '@/agents/steps/step2_characters'
 import { buildScriptPrompt } from '@/agents/steps/step3_script'
 import { buildImagePromptPrompt, parseImagePrompts, buildImagePromptCutsPrompt, parseImagePromptCuts } from '@/agents/steps/step4_imagePrompt'
-import { buildVideoPromptPrompt, parseVideoPrompts } from '@/agents/steps/step5_videoPrompt'
+import { buildVideoPromptPrompt, parseVideoPrompts, buildVideoPromptCutsPrompt, parseVideoPromptCuts } from '@/agents/steps/step5_videoPrompt'
 import { buildStoryboardPrompt, parseStoryboardFrames } from '@/agents/steps/step6_storyboard'
 import { calculateCutCount } from '@/agents/steps/helpers'
 
@@ -22,6 +22,7 @@ interface RunSingleBody {
     directorScript?: string
     imagePrompts?: ImagePrompts
     videoPrompts?: VideoPrompts
+    storyboardFrames?: StoryboardFrame[]
   }
 }
 
@@ -73,7 +74,15 @@ export async function POST(req: NextRequest) {
         const directorScript = previousResults?.directorScript || ''
         const prompt = buildVideoPromptPrompt(scene, project, directorScript)
         const raw = await callGeminiWithRetry(prompt)
-        result = { videoPrompts: parseVideoPrompts(raw) }
+        const videoPrompts = parseVideoPrompts(raw)
+
+        const frames = previousResults?.storyboardFrames || []
+        const cutCount = calculateCutCount(scene)
+        const cutsPrompt = buildVideoPromptCutsPrompt(scene, project, directorScript, frames, cutCount)
+        const cutsRaw = await callGeminiWithRetry(cutsPrompt)
+        const videoPromptCuts = parseVideoPromptCuts(cutsRaw)
+
+        result = { videoPrompts, videoPromptCuts }
         break
       }
 

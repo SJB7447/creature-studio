@@ -183,6 +183,7 @@ export const useAgentStore = create<AgentStore>((set, get) => ({
             directorScript: prev.directorScript,
             imagePrompts: prev.imagePrompts,
             videoPrompts: prev.videoPrompts,
+            storyboardFrames: prev.storyboardFrames,
           },
         }),
       })
