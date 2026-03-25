@@ -358,6 +358,7 @@ export function SceneAIPanel({ scene, project, characters, projectId, episodeId,
   const [imagePlatform, setImagePlatform] = useState<ImagePlatform>('midjourney')
   const [selectedCut, setSelectedCut] = useState<number>(0) // 0 = 대표, 1~N = 컷별
   const [videoPlatform, setVideoPlatform] = useState<VideoPlatform>('veo')
+  const [selectedVideoCut, setSelectedVideoCut] = useState<number>(0) // 0 = 대표, 1~N = 컷별
   const [transformView, setTransformView] = useState<'after' | 'before'>('after')
   const [showSteps, setShowSteps] = useState(true)
   const [showDropdown, setShowDropdown] = useState(false)
@@ -494,7 +495,7 @@ export function SceneAIPanel({ scene, project, characters, projectId, episodeId,
     switch (stepType) {
       case 'script': return s.directorScript ? { directorScript: s.directorScript } : {}
       case 'imagePrompt': return s.imagePrompts ? { imagePrompts: s.imagePrompts, imagePromptCuts: s.imagePromptCuts || [] } : {}
-      case 'videoPrompt': return s.videoPrompts ? { videoPrompts: s.videoPrompts } : {}
+      case 'videoPrompt': return s.videoPrompts ? { videoPrompts: s.videoPrompts, videoPromptCuts: s.videoPromptCuts || [] } : {}
       case 'storyboard': return s.storyboardFrames ? { storyboardFrames: s.storyboardFrames } : {}
     }
   }
@@ -527,6 +528,7 @@ export function SceneAIPanel({ scene, project, characters, projectId, episodeId,
           imagePrompt: result.imagePrompts,
           imagePromptCuts: result.imagePromptCuts || [],
           videoPrompt: result.videoPrompts,
+          videoPromptCuts: result.videoPromptCuts || [],
           storyboardFrames: result.storyboardFrames,
           agentAnalysis: result.agentAnalysis,
         },
@@ -848,6 +850,47 @@ export function SceneAIPanel({ scene, project, characters, projectId, episodeId,
             {/* ════ TAB 3: 영상 프롬프트 ════ */}
             {activeTab === 'video' && result.videoPrompts && (
               <div>
+                {/* 컷 선택 바 — 컷별 프롬프트가 있을 때만 표시 */}
+                {result.videoPromptCuts && result.videoPromptCuts.length > 0 && (
+                  <div className="mb-3">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Video className="w-3.5 h-3.5" style={{ color: 'var(--color-primary-dark)' }} />
+                      <span className="text-[11px] font-semibold" style={{ color: 'var(--color-text)' }}>
+                        총 {result.videoPromptCuts.length}컷
+                      </span>
+                      <span className="text-[10px]" style={{ color: 'var(--color-text-sub)' }}>
+                        ({scene.timeStart}~{scene.timeEnd})
+                      </span>
+                    </div>
+                    <div className="flex gap-1 flex-wrap">
+                      <button
+                        onClick={() => setSelectedVideoCut(0)}
+                        className="px-2.5 py-1 rounded-md text-[10px] font-medium transition-colors border"
+                        style={{
+                          background: selectedVideoCut === 0 ? 'var(--color-primary-dark)' : 'var(--color-surface)',
+                          color: selectedVideoCut === 0 ? 'white' : 'var(--color-text-sub)',
+                          borderColor: selectedVideoCut === 0 ? 'var(--color-primary-dark)' : 'var(--color-border)',
+                        }}>
+                        대표
+                      </button>
+                      {result.videoPromptCuts.map((cut) => (
+                        <button
+                          key={cut.cutNumber}
+                          onClick={() => setSelectedVideoCut(cut.cutNumber)}
+                          className="px-2.5 py-1 rounded-md text-[10px] font-medium transition-colors border"
+                          style={{
+                            background: selectedVideoCut === cut.cutNumber ? 'var(--color-primary-dark)' : 'var(--color-surface)',
+                            color: selectedVideoCut === cut.cutNumber ? 'white' : 'var(--color-text-sub)',
+                            borderColor: selectedVideoCut === cut.cutNumber ? 'var(--color-primary-dark)' : 'var(--color-border)',
+                          }}>
+                          {cut.cutNumber}컷
+                          <span className="ml-1 opacity-70">{cut.timeStart}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
                 <PlatformTabs
                   tabs={VIDEO_PLATFORMS.map(v => ({ id: v.id, label: v.label }))}
                   active={videoPlatform}
@@ -859,6 +902,30 @@ export function SceneAIPanel({ scene, project, characters, projectId, episodeId,
                   {VIDEO_PLATFORMS.find(v => v.id === videoPlatform)?.desc}
                 </p>
 
+                {/* 컷별 장면 설명 */}
+                {selectedVideoCut > 0 && result.videoPromptCuts && (() => {
+                  const cut = result.videoPromptCuts.find(c => c.cutNumber === selectedVideoCut)
+                  if (!cut) return null
+                  return (
+                    <div className="mb-3 p-2.5 rounded-lg border" style={{ background: 'var(--color-surface-2)', borderColor: 'var(--color-border)' }}>
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="text-[11px] font-semibold" style={{ color: 'var(--color-primary-dark)' }}>
+                          컷 {cut.cutNumber}
+                        </span>
+                        <span className="text-[10px]" style={{ color: 'var(--color-text-sub)' }}>
+                          {cut.timeStart} ~ {cut.timeEnd}
+                        </span>
+                        {cut.storyboardFrame && (
+                          <span className="text-[10px] px-1.5 py-0.5 rounded" style={{ background: 'var(--color-accent-2)', color: '#0284C7' }}>
+                            스토리보드 {cut.storyboardFrame}번 프레임
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-[11px]" style={{ color: 'var(--color-text)' }}>{cut.description}</p>
+                    </div>
+                  )
+                })()}
+
                 {/* Transform scene highlight */}
                 {isTransformScene && scene.transform && (
                   <div className="mb-3 p-2.5 rounded-xl border" style={{ background: '#F5F3FF', borderColor: '#C4B5FD' }}>
@@ -869,9 +936,19 @@ export function SceneAIPanel({ scene, project, characters, projectId, episodeId,
                   </div>
                 )}
 
-                {videoPlatform === 'veo' && <PromptDisplay value={result.videoPrompts.veo} />}
-                {videoPlatform === 'sora' && <PromptDisplay value={result.videoPrompts.sora} />}
-                {videoPlatform === 'runway' && <PromptDisplay value={result.videoPrompts.runway} />}
+                {/* Platform-specific prompt — 대표 or 컷별 */}
+                {(() => {
+                  const prompts = selectedVideoCut === 0
+                    ? result.videoPrompts
+                    : result.videoPromptCuts?.find(c => c.cutNumber === selectedVideoCut)?.prompts || result.videoPrompts
+                  return (
+                    <>
+                      {videoPlatform === 'veo' && <PromptDisplay value={prompts.veo} />}
+                      {videoPlatform === 'sora' && <PromptDisplay value={prompts.sora} />}
+                      {videoPlatform === 'runway' && <PromptDisplay value={prompts.runway} />}
+                    </>
+                  )
+                })()}
 
                 <FeedbackBar
                   placeholder="수정하고 싶은 부분을 입력하세요 (예: 카메라 움직임 더 느리게, 조명 강조)"
