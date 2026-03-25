@@ -101,10 +101,10 @@ function AssetModal({
         category,
         description: description.trim(),
         fileUrl,
-        thumbnailUrl: thumbnailUrl || undefined,
+        thumbnailUrl: thumbnailUrl || null,
         fileType,
         tags: tags.split(',').map(t => t.trim()).filter(Boolean),
-        prompt: prompt.trim() || undefined,
+        prompt: prompt.trim() || null,
       }
 
       if (editAsset) {

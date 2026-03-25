@@ -79,10 +79,10 @@ export interface ConfirmedAsset {
   category: ConfirmedAssetCategory
   description: string
   fileUrl: string
-  thumbnailUrl?: string
+  thumbnailUrl?: string | null
   fileType: string
   tags: string[]
-  prompt?: string
+  prompt?: string | null
   confirmedAt: Timestamp
   createdAt: Timestamp
 }
