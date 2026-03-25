@@ -5,13 +5,11 @@ import { auth } from '@/lib/firebase'
 import { useAuthStore } from '@/store/authStore'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
-import { LogOut, ChevronDown, Menu, Bell, Check, X, HelpCircle } from 'lucide-react'
+import { LogOut, ChevronDown, Menu, HelpCircle } from 'lucide-react'
 import { useState, useRef, useEffect } from 'react'
 import { useProjectStore } from '@/store/projectStore'
 import { useUIStore } from '@/store/uiStore'
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { getInvitationsForUser, acceptInvitation, declineInvitation } from '@/lib/firestore'
-import { Invitation } from '@/types'
+import { NotificationBell } from '@/components/layout/NotificationBell'
 import { HelpModal } from '@/components/help/HelpModal'
 
 export function AppHeader() {
@@ -19,47 +17,17 @@ export function AppHeader() {
   const { currentProject } = useProjectStore()
   const { toggleSidebar } = useUIStore()
   const router = useRouter()
-  const queryClient = useQueryClient()
   const [menuOpen, setMenuOpen] = useState(false)
-  const [bellOpen, setBellOpen] = useState(false)
   const [helpOpen, setHelpOpen] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
-  const bellRef = useRef<HTMLDivElement>(null)
-
-  // 받은 초대 목록
-  const { data: invitations = [] } = useQuery({
-    queryKey: ['my-invitations', user?.email],
-    queryFn: () => getInvitationsForUser(user!.email!),
-    enabled: !!user?.email,
-    refetchInterval: 30000, // 30초마다 폴링
-  })
 
   useEffect(() => {
     function handleClick(e: MouseEvent) {
       if (menuRef.current && !menuRef.current.contains(e.target as Node)) setMenuOpen(false)
-      if (bellRef.current && !bellRef.current.contains(e.target as Node)) setBellOpen(false)
     }
     document.addEventListener('mousedown', handleClick)
     return () => document.removeEventListener('mousedown', handleClick)
   }, [])
-
-  const acceptMutation = useMutation({
-    mutationFn: (invId: string) => acceptInvitation(invId, user!.uid),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['my-invitations'] })
-      queryClient.invalidateQueries({ queryKey: ['projects'] })
-      toast.success('초대를 수락했습니다! 프로젝트 목록에서 확인하세요.')
-    },
-    onError: (e: any) => toast.error('수락 실패: ' + e.message),
-  })
-
-  const declineMutation = useMutation({
-    mutationFn: (invId: string) => declineInvitation(invId),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['my-invitations'] })
-      toast.success('초대를 거절했습니다.')
-    },
-  })
 
   async function handleLogout() {
     try {
@@ -101,80 +69,8 @@ export function AppHeader() {
           <HelpCircle className="w-5 h-5" style={{ color: 'var(--color-text-sub)' }} />
         </button>
 
-        {/* Invitation bell */}
-        <div className="relative" ref={bellRef}>
-          <button
-            onClick={() => setBellOpen(!bellOpen)}
-            className="relative p-2 rounded-lg hover:bg-[var(--color-surface-2)] transition-colors"
-          >
-            <Bell className="w-5 h-5" style={{ color: 'var(--color-text-sub)' }} />
-            {invitations.length > 0 && (
-              <span className="absolute top-1 right-1 w-4 h-4 rounded-full flex items-center justify-center text-[10px] font-bold text-white" style={{ background: '#EF4444' }}>
-                {invitations.length}
-              </span>
-            )}
-          </button>
-
-          {bellOpen && (
-            <div className="absolute right-0 top-full mt-1 w-80 sm:w-96 rounded-xl shadow-xl border z-50 max-h-[400px] overflow-y-auto" style={{ background: 'var(--color-surface)', borderColor: 'var(--color-border)' }}>
-              <div className="p-3 border-b" style={{ borderColor: 'var(--color-border)' }}>
-                <p className="text-sm font-medium" style={{ color: 'var(--color-text)' }}>프로젝트 초대</p>
-              </div>
-
-              {invitations.length === 0 ? (
-                <div className="p-6 text-center">
-                  <Bell className="w-8 h-8 mx-auto mb-2" style={{ color: 'var(--color-text-sub)', opacity: 0.4 }} />
-                  <p className="text-xs" style={{ color: 'var(--color-text-sub)' }}>새로운 초대가 없습니다</p>
-                </div>
-              ) : (
-                <div className="p-2 space-y-1">
-                  {invitations.map((inv: Invitation) => (
-                    <div key={inv.id} className="p-3 rounded-lg" style={{ background: 'var(--color-surface-2)' }}>
-                      <div className="flex items-start gap-3">
-                        {inv.fromUserPhoto ? (
-                          <img src={inv.fromUserPhoto} alt="" className="w-8 h-8 rounded-full shrink-0 mt-0.5" />
-                        ) : (
-                          <div className="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold shrink-0 mt-0.5" style={{ background: 'var(--color-primary-dark)' }}>
-                            {inv.fromUserName?.[0] || '?'}
-                          </div>
-                        )}
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm" style={{ color: 'var(--color-text)' }}>
-                            <span className="font-medium">{inv.fromUserName}</span>님이
-                          </p>
-                          <p className="text-sm font-medium truncate" style={{ color: 'var(--color-primary-dark)' }}>
-                            {inv.projectTitle}
-                          </p>
-                          <p className="text-xs mt-0.5" style={{ color: 'var(--color-text-sub)' }}>
-                            프로젝트에 초대했습니다 · {inv.role === 'editor' ? '편집자' : '뷰어'}
-                          </p>
-                          <div className="flex gap-2 mt-2">
-                            <button
-                              onClick={() => acceptMutation.mutate(inv.id)}
-                              disabled={acceptMutation.isPending}
-                              className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-white text-xs font-medium hover:opacity-90 disabled:opacity-60"
-                              style={{ background: 'var(--color-primary-dark)' }}
-                            >
-                              <Check className="w-3 h-3" />수락
-                            </button>
-                            <button
-                              onClick={() => declineMutation.mutate(inv.id)}
-                              disabled={declineMutation.isPending}
-                              className="flex items-center gap-1 px-3 py-1.5 rounded-lg border text-xs font-medium hover:opacity-70"
-                              style={{ borderColor: 'var(--color-border)', color: 'var(--color-text-sub)' }}
-                            >
-                              <X className="w-3 h-3" />거절
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
-        </div>
+        {/* Notification bell (invitations + activity) */}
+        <NotificationBell />
 
         {/* User menu */}
         <div className="relative" ref={menuRef}>

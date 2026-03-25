@@ -2,10 +2,12 @@
 
 import { useForm } from 'react-hook-form'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { createEpisode, getEpisodes } from '@/lib/firestore'
+import { createEpisode, getEpisodes, notifyProjectMembers } from '@/lib/firestore'
 import { toast } from 'sonner'
 import { X } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
+import { useAuthStore } from '@/store/authStore'
+import { useProjectStore } from '@/store/projectStore'
 
 interface FormData {
   title: string
@@ -22,6 +24,8 @@ export function NewEpisodeDialog({ open, onClose, projectId }: {
   projectId: string
 }) {
   const queryClient = useQueryClient()
+  const { user } = useAuthStore()
+  const { currentProject } = useProjectStore()
   const { register, handleSubmit, reset } = useForm<FormData>({
     defaultValues: { number: 1 }
   })
@@ -40,9 +44,20 @@ export function NewEpisodeDialog({ open, onClose, projectId }: {
         sceneCount: 0,
       })
     },
-    onSuccess: () => {
+    onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['episodes', projectId] })
       toast.success('에피소드가 생성되었습니다!')
+      if (user && currentProject) {
+        notifyProjectMembers({
+          actorId: user.uid,
+          actorName: user.displayName || user.email || '알 수 없음',
+          actorPhoto: user.photoURL || undefined,
+          actionType: 'episode_created',
+          projectId,
+          projectTitle: currentProject.title,
+          targetTitle: variables.title,
+        }).catch(() => {})
+      }
       reset()
       onClose()
     },

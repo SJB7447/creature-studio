@@ -298,3 +298,26 @@ export interface UserProfile {
   photoURL: string
   updatedAt: Timestamp
 }
+
+export type NotificationActionType =
+  | 'episode_created'
+  | 'scene_created'
+  | 'scene_updated'
+  | 'agent_completed'
+  | 'asset_confirmed'
+  | 'collaborator_added'
+  | 'project_updated'
+
+export interface AppNotification {
+  id: string
+  userId: string           // 받는 사람
+  actorId: string          // 행동한 사람
+  actorName: string
+  actorPhoto?: string
+  actionType: NotificationActionType
+  projectId: string
+  projectTitle: string
+  targetTitle: string      // 에피소드/씬 제목 등
+  read: boolean
+  createdAt: Timestamp
+}

@@ -4,8 +4,9 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import { Scene, Project, Character, Episode } from '@/types'
 import { SceneFormPanel } from './SceneFormPanel'
 import { SceneAIPanel } from '../agent/SceneAIPanel'
-import { updateScene, getEpisodes, getScenes } from '@/lib/firestore'
+import { updateScene, getEpisodes, getScenes, notifyProjectMembers } from '@/lib/firestore'
 import { useQueryClient } from '@tanstack/react-query'
+import { useAuthStore } from '@/store/authStore'
 import { toast } from 'sonner'
 import Link from 'next/link'
 import { cn } from '@/lib/utils'
@@ -90,6 +91,7 @@ export function SceneEditor({ scene, project, characters, projectId, episodeId, 
   const [mobileTab, setMobileTab] = useState<'form' | 'ai'>('form')
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const queryClient = useQueryClient()
+  const { user } = useAuthStore()
 
   // Auto-save with 2s debounce
   const autoSave = useCallback((updated: Scene) => {
@@ -119,6 +121,17 @@ export function SceneEditor({ scene, project, characters, projectId, episodeId, 
       queryClient.invalidateQueries({ queryKey: ['scene', projectId, episodeId, sceneId] })
       setSaveStatus('saved')
       toast.success('저장되었습니다.')
+      if (user) {
+        notifyProjectMembers({
+          actorId: user.uid,
+          actorName: user.displayName || user.email || '알 수 없음',
+          actorPhoto: user.photoURL || undefined,
+          actionType: 'scene_updated',
+          projectId,
+          projectTitle: project.title,
+          targetTitle: currentScene.title,
+        }).catch(() => {})
+      }
     } catch (e: any) {
       toast.error('저장 실패: ' + e.message)
       setSaveStatus('unsaved')

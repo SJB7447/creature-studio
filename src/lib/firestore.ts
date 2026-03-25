@@ -19,7 +19,7 @@ import {
   Unsubscribe,
 } from 'firebase/firestore'
 import { db } from './firebase'
-import { Project, Episode, Scene, Character, ConfirmedAsset, Invitation, UserProfile, CollaboratorRole } from '@/types'
+import { Project, Episode, Scene, Character, ConfirmedAsset, Invitation, UserProfile, CollaboratorRole, AppNotification, NotificationActionType } from '@/types'
 
 // ─── Projects ────────────────────────────────────────────────
 export async function getProjects(userId: string): Promise<Project[]> {
@@ -417,6 +417,71 @@ export async function transferOwnership(projectId: string, newOwnerId: string): 
     collaborators: arrayRemove(newOwnerId),
     updatedAt: serverTimestamp(),
   })
+}
+
+// ─── Notifications ────────────────────────────────────────────
+interface NotifyPayload {
+  actorId: string
+  actorName: string
+  actorPhoto?: string
+  actionType: NotificationActionType
+  projectId: string
+  projectTitle: string
+  targetTitle: string
+}
+
+export async function notifyProjectMembers(payload: NotifyPayload): Promise<void> {
+  const projectSnap = await getDoc(doc(db, 'projects', payload.projectId))
+  if (!projectSnap.exists()) return
+  const project = projectSnap.data()
+
+  const recipients: string[] = [
+    project.ownerId,
+    ...(project.collaborators || []),
+  ].filter((uid: string) => uid !== payload.actorId)
+
+  await Promise.all(
+    recipients.map((userId: string) =>
+      addDoc(collection(db, 'users', userId, 'notifications'), {
+        userId,
+        actorId: payload.actorId,
+        actorName: payload.actorName,
+        actorPhoto: payload.actorPhoto || null,
+        actionType: payload.actionType,
+        projectId: payload.projectId,
+        projectTitle: payload.projectTitle,
+        targetTitle: payload.targetTitle,
+        read: false,
+        createdAt: serverTimestamp(),
+      })
+    )
+  )
+}
+
+export function subscribeNotifications(
+  userId: string,
+  callback: (notifications: AppNotification[]) => void
+): Unsubscribe {
+  const q = query(
+    collection(db, 'users', userId, 'notifications'),
+    orderBy('createdAt', 'desc')
+  )
+  return onSnapshot(q, snap => {
+    callback(snap.docs.map(d => ({ id: d.id, ...d.data() } as AppNotification)))
+  })
+}
+
+export async function markNotificationRead(userId: string, notifId: string): Promise<void> {
+  await updateDoc(doc(db, 'users', userId, 'notifications', notifId), { read: true })
+}
+
+export async function markAllNotificationsRead(userId: string): Promise<void> {
+  const q = query(
+    collection(db, 'users', userId, 'notifications'),
+    where('read', '==', false)
+  )
+  const snap = await getDocs(q)
+  await Promise.all(snap.docs.map(d => updateDoc(d.ref, { read: true })))
 }
 
 // ─── Scene Assets Update ──────────────────────────────────────

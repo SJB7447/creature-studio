@@ -2,7 +2,8 @@
 
 import { useState, useRef } from 'react'
 import { Scene, Project, Character, AgentResult, AgentStep } from '@/types'
-import { updateScene } from '@/lib/firestore'
+import { updateScene, notifyProjectMembers } from '@/lib/firestore'
+import { useAuthStore } from '@/store/authStore'
 import { useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -58,6 +59,7 @@ export function AgentPanel({ scene, project, characters, projectId, episodeId, s
   const [expanded, setExpanded] = useState(true)
   const [saving, setSaving] = useState(false)
   const queryClient = useQueryClient()
+  const { user } = useAuthStore()
   const abortRef = useRef<AbortController | null>(null)
 
   async function runAgent() {
@@ -145,6 +147,17 @@ export function AgentPanel({ scene, project, characters, projectId, episodeId, s
       })
       queryClient.invalidateQueries({ queryKey: ['scene', projectId, episodeId, sceneId] })
       toast.success('에셋이 저장되었습니다!')
+      if (user) {
+        notifyProjectMembers({
+          actorId: user.uid,
+          actorName: user.displayName || user.email || '알 수 없음',
+          actorPhoto: user.photoURL || undefined,
+          actionType: 'agent_completed',
+          projectId,
+          projectTitle: project.title,
+          targetTitle: scene.title,
+        }).catch(() => {})
+      }
       onAssetsSaved()
     } catch (e: any) {
       toast.error('저장 실패: ' + e.message)
