@@ -5,13 +5,14 @@ import { auth } from '@/lib/firebase'
 import { useAuthStore } from '@/store/authStore'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
-import { LogOut, ChevronDown, Menu, Bell, Check, X } from 'lucide-react'
+import { LogOut, ChevronDown, Menu, Bell, Check, X, HelpCircle } from 'lucide-react'
 import { useState, useRef, useEffect } from 'react'
 import { useProjectStore } from '@/store/projectStore'
 import { useUIStore } from '@/store/uiStore'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { getInvitationsForUser, acceptInvitation, declineInvitation } from '@/lib/firestore'
 import { Invitation } from '@/types'
+import { HelpModal } from '@/components/help/HelpModal'
 
 export function AppHeader() {
   const { user } = useAuthStore()
@@ -21,6 +22,7 @@ export function AppHeader() {
   const queryClient = useQueryClient()
   const [menuOpen, setMenuOpen] = useState(false)
   const [bellOpen, setBellOpen] = useState(false)
+  const [helpOpen, setHelpOpen] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
   const bellRef = useRef<HTMLDivElement>(null)
 
@@ -90,6 +92,15 @@ export function AppHeader() {
 
       {/* Right: notifications + user menu */}
       <div className="flex items-center gap-1 sm:gap-2 shrink-0">
+        {/* Help button */}
+        <button
+          onClick={() => setHelpOpen(true)}
+          className="p-2 rounded-lg hover:bg-[var(--color-surface-2)] transition-colors"
+          title="도움말"
+        >
+          <HelpCircle className="w-5 h-5" style={{ color: 'var(--color-text-sub)' }} />
+        </button>
+
         {/* Invitation bell */}
         <div className="relative" ref={bellRef}>
           <button
@@ -201,5 +212,7 @@ export function AppHeader() {
         </div>
       </div>
     </header>
+
+    <HelpModal open={helpOpen} onClose={() => setHelpOpen(false)} />
   )
 }
