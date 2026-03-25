@@ -11,7 +11,7 @@ import { cn } from '@/lib/utils'
 import Link from 'next/link'
 import { ProjectStatus } from '@/types'
 
-type FilterStatus = 'all' | ProjectStatus
+type FilterStatus = 'all' | ProjectStatus | 'shared' | 'recent'
 
 const STATUS_FILTERS: { value: FilterStatus; label: string }[] = [
   { value: 'all', label: '전체' },
@@ -40,7 +40,14 @@ export default function DashboardPage() {
   }
 
   const filtered = projects.filter(p => {
-    const matchStatus = filter === 'all' || p.status === filter
+    let matchStatus = false
+    if (filter === 'all') matchStatus = true
+    else if (filter === 'shared') matchStatus = p.ownerId !== user?.uid
+    else if (filter === 'recent') {
+      const d = (p.updatedAt as any)?.toDate ? (p.updatedAt as any).toDate() : new Date()
+      matchStatus = Date.now() - d.getTime() < 1000 * 60 * 60 * 24 * 7
+    } else matchStatus = p.status === filter
+
     const matchSearch = !search ||
       p.title.toLowerCase().includes(search.toLowerCase()) ||
       p.titleEn.toLowerCase().includes(search.toLowerCase()) ||
@@ -50,17 +57,17 @@ export default function DashboardPage() {
 
   const sharedCount = projects.filter(p => p.ownerId !== user?.uid).length
 
-  const stats = [
-    { label: '전체 프로젝트', value: projects.length, icon: FolderOpen, color: '#7C3AED', bg: '#EDE9FE' },
-    { label: '제작 중', value: projects.filter(p => p.status === 'production').length, icon: Film, color: '#059669', bg: '#D1FAE5' },
-    { label: '공유 프로젝트', value: sharedCount, icon: Users, color: '#2563EB', bg: '#DBEAFE' },
+  const stats: { label: string; value: number; icon: any; color: string; bg: string; filterKey: FilterStatus }[] = [
+    { label: '전체 프로젝트', value: projects.length, icon: FolderOpen, color: '#7C3AED', bg: '#EDE9FE', filterKey: 'all' },
+    { label: '제작 중', value: projects.filter(p => p.status === 'production').length, icon: Film, color: '#059669', bg: '#D1FAE5', filterKey: 'production' },
+    { label: '공유 프로젝트', value: sharedCount, icon: Users, color: '#2563EB', bg: '#DBEAFE', filterKey: 'shared' },
     {
       label: '이번 주 업데이트',
       value: projects.filter(p => {
         const d = (p.updatedAt as any)?.toDate ? (p.updatedAt as any).toDate() : new Date()
         return Date.now() - d.getTime() < 1000 * 60 * 60 * 24 * 7
       }).length,
-      icon: Clock, color: '#D97706', bg: '#FEF3C7',
+      icon: Clock, color: '#D97706', bg: '#FEF3C7', filterKey: 'recent',
     },
   ]
 
@@ -76,26 +83,37 @@ export default function DashboardPage() {
 
       {/* Stats */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-8">
-        {stats.map((stat, i) => (
-          <motion.div
-            key={stat.label}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: i * 0.08 }}
-            className="p-5 rounded-2xl border"
-            style={{ background: 'var(--color-surface)', borderColor: 'var(--color-border)' }}
-          >
-            <div className="inline-flex p-2.5 rounded-xl mb-3" style={{ background: stat.bg }}>
-              <stat.icon className="w-5 h-5" style={{ color: stat.color }} />
-            </div>
-            <div className="text-2xl font-bold" style={{ color: 'var(--color-text)' }}>{stat.value}</div>
-            <div className="text-xs mt-0.5" style={{ color: 'var(--color-text-sub)' }}>{stat.label}</div>
-          </motion.div>
-        ))}
+        {stats.map((stat, i) => {
+          const isActive = filter === stat.filterKey
+          return (
+            <motion.button
+              key={stat.label}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: i * 0.08 }}
+              onClick={() => {
+                setFilter(isActive ? 'all' : stat.filterKey)
+                document.getElementById('project-list')?.scrollIntoView({ behavior: 'smooth' })
+              }}
+              className="p-5 rounded-2xl border text-left transition-all hover:shadow-md active:scale-95"
+              style={{
+                background: isActive ? stat.bg : 'var(--color-surface)',
+                borderColor: isActive ? stat.color : 'var(--color-border)',
+                outline: 'none',
+              }}
+            >
+              <div className="inline-flex p-2.5 rounded-xl mb-3" style={{ background: isActive ? 'white' : stat.bg }}>
+                <stat.icon className="w-5 h-5" style={{ color: stat.color }} />
+              </div>
+              <div className="text-2xl font-bold" style={{ color: isActive ? stat.color : 'var(--color-text)' }}>{stat.value}</div>
+              <div className="text-xs mt-0.5" style={{ color: isActive ? stat.color : 'var(--color-text-sub)' }}>{stat.label}</div>
+            </motion.button>
+          )
+        })}
       </div>
 
       {/* Project header */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 mb-4">
+      <div id="project-list" className="flex flex-col sm:flex-row items-start sm:items-center gap-3 mb-4">
         <h2 className="text-lg font-semibold sm:mr-auto" style={{ color: 'var(--color-text)' }}>프로젝트</h2>
         <div className="flex items-center gap-3 w-full sm:w-auto">
           <div className="relative flex-1 sm:flex-none">
