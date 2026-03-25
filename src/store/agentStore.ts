@@ -2,7 +2,7 @@ import { create } from 'zustand'
 import {
   Scene, Project, Character,
   AgentStepName, SceneAnalysis, CharacterContext,
-  ImagePrompts, ImagePromptCut, VideoPrompts, StoryboardFrame, ValidationResult,
+  ImagePrompts, ImagePromptCut, VideoPrompts, VideoPromptCut, StoryboardFrame, ValidationResult,
 } from '@/types'
 
 export type AgentStatus = 'idle' | 'running' | 'done' | 'error'
@@ -22,6 +22,7 @@ interface AgentStore {
   imagePrompts: ImagePrompts | null
   imagePromptCuts: ImagePromptCut[] | null
   videoPrompts: VideoPrompts | null
+  videoPromptCuts: VideoPromptCut[] | null
   storyboardFrames: StoryboardFrame[] | null
   validation: ValidationResult | null
   qualityScore: number | null
@@ -50,6 +51,7 @@ const INITIAL_STATE = {
   imagePrompts: null,
   imagePromptCuts: null,
   videoPrompts: null,
+  videoPromptCuts: null,
   storyboardFrames: null,
   validation: null,
   qualityScore: null,
@@ -111,6 +113,7 @@ export const useAgentStore = create<AgentStore>((set, get) => ({
                 if (p.result.imagePrompts) set({ imagePrompts: p.result.imagePrompts })
                 if (p.result.imagePromptCuts) set({ imagePromptCuts: p.result.imagePromptCuts })
                 if (p.result.videoPrompts) set({ videoPrompts: p.result.videoPrompts })
+                if (p.result.videoPromptCuts) set({ videoPromptCuts: p.result.videoPromptCuts })
                 if (p.result.storyboardFrames) set({ storyboardFrames: p.result.storyboardFrames })
                 if (p.result.validation) {
                   const v = p.result.validation as ValidationResult
@@ -132,6 +135,7 @@ export const useAgentStore = create<AgentStore>((set, get) => ({
                 imagePrompts: r.imagePrompts,
                 imagePromptCuts: r.imagePromptCuts || null,
                 videoPrompts: r.videoPrompts,
+                videoPromptCuts: r.videoPromptCuts || null,
                 storyboardFrames: r.storyboardFrames,
                 validation: r.validation,
                 qualityScore: r.validation?.qualityGrade === 'A' ? 100 : r.validation?.qualityGrade === 'B' ? 75 : 50,
@@ -201,8 +205,9 @@ export const useAgentStore = create<AgentStore>((set, get) => ({
 
       if (data.result.directorScript !== undefined) updates.directorScript = data.result.directorScript
       if (data.result.imagePrompts) updates.imagePrompts = data.result.imagePrompts
-      if (data.result.imagePromptCuts) (updates as any).imagePromptCuts = data.result.imagePromptCuts
+      if (data.result.imagePromptCuts) updates.imagePromptCuts = data.result.imagePromptCuts
       if (data.result.videoPrompts) updates.videoPrompts = data.result.videoPrompts
+      if (data.result.videoPromptCuts) updates.videoPromptCuts = data.result.videoPromptCuts
       if (data.result.storyboardFrames) updates.storyboardFrames = data.result.storyboardFrames
 
       set(updates as any)
