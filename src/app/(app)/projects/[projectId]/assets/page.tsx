@@ -265,11 +265,131 @@ function AssetModal({
   )
 }
 
+// ─── Asset Detail Modal ───────────────────────────────────────
+function AssetDetailModal({
+  asset, onClose, onEdit,
+}: {
+  asset: ConfirmedAsset; onClose: () => void; onEdit: () => void
+}) {
+  const cfg = CATEGORY_CONFIG[asset.category]
+  const isImage = asset.fileType?.startsWith('image/')
+  const isAudio = asset.fileType?.startsWith('audio/')
+  const [audioPlaying, setAudioPlaying] = useState(false)
+  const audioRef = useRef<HTMLAudioElement>(null)
+  const [copied, setCopied] = useState(false)
+
+  function toggleAudio() {
+    if (!audioRef.current) return
+    if (audioPlaying) { audioRef.current.pause() } else { audioRef.current.play() }
+    setAudioPlaying(!audioPlaying)
+  }
+
+  async function copyPrompt() {
+    if (!asset.prompt) return
+    await navigator.clipboard.writeText(asset.prompt)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
+  }
+
+  return (
+    <AnimatePresence>
+      <div className="fixed inset-0 z-50 flex items-center justify-center">
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose} />
+        <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}
+          className="relative z-10 w-full max-w-lg mx-4 rounded-2xl shadow-2xl overflow-hidden border"
+          style={{ background: 'var(--color-surface)', borderColor: 'var(--color-border)' }}
+        >
+          {/* Image / Audio preview */}
+          <div className="relative" style={{ background: cfg.bgColor }}>
+            {isImage && asset.fileUrl ? (
+              <img src={asset.fileUrl} alt={asset.name} className="w-full max-h-72 object-contain" />
+            ) : isAudio ? (
+              <div className="flex flex-col items-center justify-center py-10 gap-3">
+                <button onClick={toggleAudio} className="w-16 h-16 rounded-full flex items-center justify-center transition-transform hover:scale-110"
+                  style={{ background: 'white', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
+                  {audioPlaying ? <Pause className="w-7 h-7" style={{ color: cfg.color }} /> : <Play className="w-7 h-7 ml-0.5" style={{ color: cfg.color }} />}
+                </button>
+                <audio ref={audioRef} src={asset.fileUrl} onEnded={() => setAudioPlaying(false)} />
+                <p className="text-xs" style={{ color: cfg.color }}>클릭하여 재생</p>
+              </div>
+            ) : (
+              <div className="flex items-center justify-center py-10">
+                <cfg.icon className="w-16 h-16" style={{ color: cfg.color, opacity: 0.4 }} />
+              </div>
+            )}
+
+            {/* Badges */}
+            <div className="absolute top-3 left-3 flex items-center gap-1 px-2 py-1 rounded-full text-white text-[10px] font-medium"
+              style={{ background: '#10B981' }}>
+              <Lock className="w-2.5 h-2.5" />확정
+            </div>
+            <div className="absolute top-3 right-10 flex items-center gap-1 px-2 py-1 rounded-full text-[10px] font-medium"
+              style={{ background: 'white', color: cfg.color }}>
+              <cfg.icon className="w-2.5 h-2.5" />{cfg.label}
+            </div>
+
+            {/* Close */}
+            <button onClick={onClose} className="absolute top-2.5 right-2.5 p-1.5 rounded-lg hover:opacity-70"
+              style={{ background: 'rgba(255,255,255,0.9)' }}>
+              <X className="w-4 h-4" style={{ color: 'var(--color-text-sub)' }} />
+            </button>
+          </div>
+
+          {/* Info */}
+          <div className="p-5 space-y-3 max-h-72 overflow-y-auto">
+            <div className="flex items-start justify-between gap-2">
+              <h2 className="text-base font-semibold" style={{ color: 'var(--color-text)' }}>{asset.name}</h2>
+              <button onClick={() => { onClose(); onEdit() }}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs shrink-0 hover:opacity-80"
+                style={{ borderColor: 'var(--color-border)', color: 'var(--color-text-sub)' }}>
+                <Edit3 className="w-3 h-3" />수정
+              </button>
+            </div>
+
+            {asset.description && (
+              <p className="text-sm leading-relaxed" style={{ color: 'var(--color-text-sub)' }}>{asset.description}</p>
+            )}
+
+            {asset.prompt && (
+              <div className="rounded-xl border p-3" style={{ background: 'var(--color-surface-2)', borderColor: 'var(--color-border)' }}>
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-1.5">
+                    <FileText className="w-3.5 h-3.5" style={{ color: 'var(--color-primary-dark)' }} />
+                    <span className="text-xs font-semibold" style={{ color: 'var(--color-text)' }}>이미지 프롬프트</span>
+                  </div>
+                  <button onClick={copyPrompt}
+                    className="flex items-center gap-1 text-[11px] px-2 py-1 rounded-md hover:opacity-80 transition-colors"
+                    style={{ background: copied ? '#D1FAE5' : 'var(--color-surface)', color: copied ? '#059669' : 'var(--color-text-sub)', border: '1px solid var(--color-border)' }}>
+                    {copied ? <CheckCircle2 className="w-3 h-3" /> : <Tag className="w-3 h-3" />}
+                    {copied ? '복사됨' : '복사'}
+                  </button>
+                </div>
+                <p className="text-xs font-mono leading-relaxed whitespace-pre-wrap" style={{ color: 'var(--color-text)' }}>{asset.prompt}</p>
+              </div>
+            )}
+
+            {asset.tags?.length > 0 && (
+              <div className="flex flex-wrap gap-1.5">
+                {asset.tags.map(tag => (
+                  <span key={tag} className="text-[11px] px-2 py-0.5 rounded-full"
+                    style={{ background: 'var(--color-surface-2)', color: 'var(--color-text-sub)', border: '1px solid var(--color-border)' }}>
+                    {tag}
+                  </span>
+                ))}
+              </div>
+            )}
+          </div>
+        </motion.div>
+      </div>
+    </AnimatePresence>
+  )
+}
+
 // ─── Asset Card ───────────────────────────────────────────────
 function AssetCard({
-  asset, projectId, onEdit,
+  asset, projectId, onEdit, onView,
 }: {
-  asset: ConfirmedAsset; projectId: string; onEdit: () => void
+  asset: ConfirmedAsset; projectId: string; onEdit: () => void; onView: () => void
 }) {
   const queryClient = useQueryClient()
   const [audioPlaying, setAudioPlaying] = useState(false)
@@ -287,18 +407,19 @@ function AssetCard({
   const isImage = asset.fileType?.startsWith('image/')
   const isAudio = asset.fileType?.startsWith('audio/')
 
-  function toggleAudio() {
+  function toggleAudio(e: React.MouseEvent) {
+    e.stopPropagation()
     if (!audioRef.current) return
-    if (audioPlaying) {
-      audioRef.current.pause()
-    } else {
-      audioRef.current.play()
-    }
+    if (audioPlaying) { audioRef.current.pause() } else { audioRef.current.play() }
     setAudioPlaying(!audioPlaying)
   }
 
   return (
-    <div className="rounded-xl border overflow-hidden transition-colors group" style={{ background: 'var(--color-surface)', borderColor: 'var(--color-border)' }}>
+    <div
+      className="rounded-xl border overflow-hidden transition-all group cursor-pointer hover:shadow-md hover:-translate-y-0.5"
+      style={{ background: 'var(--color-surface)', borderColor: 'var(--color-border)' }}
+      onClick={onView}
+    >
       {/* Preview area */}
       <div className="relative h-40 flex items-center justify-center" style={{ background: cfg.bgColor }}>
         {isImage && asset.fileUrl ? (
@@ -328,10 +449,10 @@ function AssetCard({
 
         {/* Actions */}
         <div className="absolute bottom-2 right-2 flex gap-1 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
-          <button onClick={onEdit} className="p-1.5 rounded-lg" style={{ background: 'rgba(255,255,255,0.9)' }}>
+          <button onClick={e => { e.stopPropagation(); onEdit() }} className="p-1.5 rounded-lg" style={{ background: 'rgba(255,255,255,0.9)' }}>
             <Edit3 className="w-3.5 h-3.5" style={{ color: 'var(--color-primary-dark)' }} />
           </button>
-          <button onClick={() => { if (confirm(`"${asset.name}" 삭제할까요?`)) deleteMutation.mutate() }}
+          <button onClick={e => { e.stopPropagation(); if (confirm(`"${asset.name}" 삭제할까요?`)) deleteMutation.mutate() }}
             className="p-1.5 rounded-lg" style={{ background: 'rgba(255,255,255,0.9)' }}>
             <Trash2 className="w-3.5 h-3.5" style={{ color: '#EF4444' }} />
           </button>
@@ -372,6 +493,7 @@ export default function ConfirmedAssetsPage() {
   const { projectId } = useParams<{ projectId: string }>()
   const [modalOpen, setModalOpen] = useState(false)
   const [editAsset, setEditAsset] = useState<ConfirmedAsset | null>(null)
+  const [viewAsset, setViewAsset] = useState<ConfirmedAsset | null>(null)
   const [filterCategory, setFilterCategory] = useState<ConfirmedAssetCategory | 'all'>('all')
   const [searchQuery, setSearchQuery] = useState('')
 
@@ -515,10 +637,18 @@ export default function ConfirmedAssetsPage() {
           {filtered.map((asset, i) => (
             <motion.div key={asset.id} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
               transition={{ delay: i * 0.03 }}>
-              <AssetCard asset={asset} projectId={projectId} onEdit={() => openEdit(asset)} />
+              <AssetCard asset={asset} projectId={projectId} onEdit={() => openEdit(asset)} onView={() => setViewAsset(asset)} />
             </motion.div>
           ))}
         </div>
+      )}
+
+      {viewAsset && (
+        <AssetDetailModal
+          asset={viewAsset}
+          onClose={() => setViewAsset(null)}
+          onEdit={() => { setViewAsset(null); openEdit(viewAsset) }}
+        />
       )}
 
       {modalOpen && (
