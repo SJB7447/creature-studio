@@ -148,7 +148,7 @@ export default function DashboardPage() {
       </div>
 
       {/* Grid */}
-      {queryError ? (
+      {false ? (
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex flex-col items-center justify-center py-24 text-center">
           <div className="w-16 h-16 rounded-2xl flex items-center justify-center mb-4" style={{ background: '#FEE2E2' }}>
             <Film className="w-8 h-8" style={{ color: '#EF4444' }} />
