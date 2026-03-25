@@ -40,6 +40,7 @@ export function AppHeader() {
   }
 
   return (
+    <>
     <header className="h-14 border-b flex items-center justify-between px-4 sm:px-6 shrink-0" style={{ background: 'var(--color-surface)', borderColor: 'var(--color-border)' }}>
       {/* Left: hamburger + breadcrumb */}
       <div className="flex items-center gap-2 text-sm min-w-0">
@@ -110,5 +111,6 @@ export function AppHeader() {
     </header>
 
     <HelpModal open={helpOpen} onClose={() => setHelpOpen(false)} />
+    </>
   )
 }
