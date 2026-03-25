@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useRef, useEffect, useCallback } from 'react'
+import { DragScrollDiv } from '@/components/ui/DragScrollDiv'
 import { Scene, Project, Character, ConfirmedAsset, AgentResult, AgentStep, ValidationResult } from '@/types'
 import { updateScene, getConfirmedAssets } from '@/lib/firestore'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
@@ -896,7 +897,7 @@ export function SceneAIPanel({ scene, project, characters, projectId, episodeId,
                     </div>
 
                     {/* Horizontal scroll frames */}
-                    <div className="flex gap-3 overflow-x-auto pb-3 -mx-1 px-1" style={{ scrollSnapType: 'x mandatory' }}>
+                    <DragScrollDiv className="flex gap-3 overflow-x-auto pb-3 -mx-1 px-1" style={{ scrollSnapType: 'x mandatory' }}>
                       {result.storyboardFrames.map((frame, i) => (
                         <div key={i} className="flex-none w-72 p-4 rounded-xl border" style={{ background: 'var(--color-surface)', borderColor: 'var(--color-border)', scrollSnapAlign: 'start' }}>
                           {/* Frame number badge */}
@@ -925,7 +926,7 @@ export function SceneAIPanel({ scene, project, characters, projectId, episodeId,
                           </div>
                         </div>
                       ))}
-                    </div>
+                    </DragScrollDiv>
 
                     {/* Director summary (analysis) */}
                     {result.analysis && result.analysis.keyVisualMoment && (

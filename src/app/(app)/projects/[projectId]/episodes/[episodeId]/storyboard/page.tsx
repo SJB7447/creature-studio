@@ -6,6 +6,7 @@ import { getScenes, getEpisode, getEpisodes, getProject } from '@/lib/firestore'
 import { Scene, Episode } from '@/types'
 import { motion } from 'framer-motion'
 import { useState, useRef, useMemo } from 'react'
+import { DragScrollDiv } from '@/components/ui/DragScrollDiv'
 import { Download, ChevronDown, BarChart2 } from 'lucide-react'
 import { cn, TIME_OF_DAY_LABELS } from '@/lib/utils'
 import Link from 'next/link'
@@ -335,11 +336,11 @@ ${scene.emotionKeywords.slice(0, 3).map(k => `<span class="tag">${k}</span>`).jo
 
       {/* Scene cards timeline */}
       {isLoading ? (
-        <div className="flex gap-4 overflow-x-auto pb-4">
+        <DragScrollDiv className="flex gap-4 overflow-x-auto pb-4">
           {[1,2,3,4].map(i => <div key={i} className="w-[280px] h-72 rounded-xl border animate-pulse shrink-0" style={{ background: 'var(--color-surface)', borderColor: 'var(--color-border)' }} />)}
-        </div>
+        </DragScrollDiv>
       ) : (
-        <div className="flex gap-4 overflow-x-auto pb-4">
+        <DragScrollDiv className="flex gap-4 overflow-x-auto pb-4">
           {scenes.map((scene, i) => {
             const status = getAIStatus(scene)
             return (
@@ -404,7 +405,7 @@ ${scene.emotionKeywords.slice(0, 3).map(k => `<span class="tag">${k}</span>`).jo
               </motion.div>
             )
           })}
-        </div>
+        </DragScrollDiv>
       )}
 
       {scenes.length === 0 && !isLoading && (
