@@ -139,11 +139,22 @@ export interface VideoPrompts {
   runway: string
 }
 
+/** 컷별 영상 프롬프트 (스토리보드 프레임과 1:1 매핑) */
+export interface VideoPromptCut {
+  cutNumber: number
+  timeStart: string
+  timeEnd: string
+  storyboardFrame?: number
+  description: string
+  prompts: VideoPrompts
+}
+
 export interface SceneAssets {
   directorScript?: string
   imagePrompt?: ImagePrompts
   imagePromptCuts?: ImagePromptCut[]
   videoPrompt?: VideoPrompts
+  videoPromptCuts?: VideoPromptCut[]
   storyboardFrames?: StoryboardFrame[]
   agentAnalysis?: string
 }
@@ -201,9 +212,9 @@ export type AgentStepName =
   | 'analyzing'       // Step 1
   | 'characters'      // Step 2
   | 'scripting'       // Step 3
-  | 'imagePrompt'     // Step 4
-  | 'videoPrompt'     // Step 5
-  | 'storyboard'      // Step 6
+  | 'storyboard'      // Step 4 (스토리보드 먼저 → 이미지/영상에 반영)
+  | 'imagePrompt'     // Step 5
+  | 'videoPrompt'     // Step 6
   | 'validating'      // Step 7
   | 'done'
   | 'error'
@@ -246,6 +257,7 @@ export interface AgentResult {
   imagePrompts: ImagePrompts
   imagePromptCuts: ImagePromptCut[]
   videoPrompts: VideoPrompts
+  videoPromptCuts: VideoPromptCut[]
   storyboardFrames: StoryboardFrame[]
   validation: ValidationResult
   agentAnalysis: string

@@ -1,4 +1,4 @@
-import { Scene, Project, SceneAnalysis, CharacterContext, ImagePrompts, ImagePromptCut, ConfirmedAsset } from '@/types'
+import { Scene, Project, SceneAnalysis, CharacterContext, ImagePrompts, ImagePromptCut, ConfirmedAsset, StoryboardFrame } from '@/types'
 import { calculateCutCount, parseTimecode } from './helpers'
 
 function buildConfirmedAssetBlock(confirmedAssets: ConfirmedAsset[]): string {
@@ -84,14 +84,15 @@ ${scene.isAITransformScene && scene.transform ? `[AI 변환 씬 — 변환 후 �
 - 반드시 JSON만 반환하세요.`
 }
 
-/** 컷별 이미지 프롬프트 빌더 — 씬 길이에 따라 다수의 컷 프롬프트 생성 */
+/** 컷별 이미지 프롬프트 빌더 — 스토리보드 프레임 + 씬 길이에 따라 다수의 컷 프롬프트 생성 */
 export function buildImagePromptCutsPrompt(
   scene: Scene,
   project: Project,
   analysis: SceneAnalysis,
   characterContext: CharacterContext,
   cutCount: number,
-  confirmedAssets: ConfirmedAsset[] = []
+  confirmedAssets: ConfirmedAsset[] = [],
+  storyboardFrames: StoryboardFrame[] = []
 ): string {
   const charKeywords = characterContext.characters
     .map(c => `${c.name}: ${c.keywords.join(', ')}`)
@@ -115,6 +116,21 @@ export function buildImagePromptCutsPrompt(
     }
     return `컷 ${i + 1}: ${fmtTime(cutStart)} ~ ${fmtTime(cutEnd)}`
   }).join('\n')
+
+  // 스토리보드 프레임이 있으면 컷별 참조 섹션 구성
+  const storyboardSection = storyboardFrames.length > 0
+    ? `\n[★ 스토리보드 컷별 카메라·레이아웃 지시 — 반드시 이미지 프롬프트에 반영]\n` +
+      Array.from({ length: cutCount }, (_, i) => {
+        const frame = storyboardFrames[i]
+        if (!frame) return `컷 ${i + 1}: (스토리보드 없음)`
+        return [
+          `컷 ${i + 1} — 프레임 ${frame.frameNumber}:`,
+          `  묘사: ${frame.description}`,
+          `  카메라: ${frame.cameraNote}`,
+          `  레이아웃: ${frame.layout}`,
+        ].join('\n')
+      }).join('\n\n')
+    : ''
 
   return `당신은 AI 이미지 생성 전문 프롬프트 엔지니어입니다.
 Midjourney, Google Imagen, Stable Diffusion 등의 도구에 정통합니다.
@@ -155,6 +171,7 @@ ${scene.isAITransformScene && scene.transform ? `[AI 변환 씬]
 
 [컷 시간 구간]
 ${cutTimeRanges}
+${storyboardSection}
 
 다음 형식의 JSON 배열을 반환하세요. **정확히 ${cutCount}개의 컷**을 생성합니다:
 [
@@ -173,6 +190,7 @@ ${cutTimeRanges}
 ]
 
 중요:
+- 스토리보드의 카메라 지시(cameraNote)와 레이아웃(layout)을 각 컷 프롬프트의 구도·카메라 앵글에 반드시 반영
 - 확정 에셋의 비주얼 키워드를 최우선으로 모든 컷에 반영 (일관성 유지)
 - 각 컷은 시간 순서대로 장면이 자연스럽게 이어져야 함
 - 캐릭터의 고정 프롬프트 키워드를 모든 컷에 반드시 포함

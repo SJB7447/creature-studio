@@ -136,7 +136,9 @@ export function AgentPanel({ scene, project, characters, projectId, episodeId, s
         assets: {
           directorScript: result.directorScript,
           imagePrompt: result.imagePrompts,
+          imagePromptCuts: result.imagePromptCuts,
           videoPrompt: result.videoPrompts,
+          videoPromptCuts: result.videoPromptCuts,
           storyboardFrames: result.storyboardFrames,
           agentAnalysis: result.agentAnalysis,
         },

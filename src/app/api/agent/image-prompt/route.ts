@@ -1,16 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { callGeminiWithRetry } from '@/lib/gemini'
 import { buildImagePromptPrompt, parseImagePrompts, buildImagePromptCutsPrompt, parseImagePromptCuts } from '@/agents/steps/step4_imagePrompt'
-import { Scene, Project, SceneAnalysis, CharacterContext } from '@/types'
+import { Scene, Project, SceneAnalysis, CharacterContext, StoryboardFrame } from '@/types'
 import { calculateCutCount } from '@/agents/steps/helpers'
 
 export async function POST(req: NextRequest) {
   try {
-    const { scene, project, analysis, characterContext } = await req.json() as {
+    const { scene, project, analysis, characterContext, storyboardFrames } = await req.json() as {
       scene: Scene
       project: Project
       analysis: SceneAnalysis
       characterContext: CharacterContext
+      storyboardFrames?: StoryboardFrame[]
     }
 
     if (!scene || !project || !analysis) {
@@ -22,7 +23,7 @@ export async function POST(req: NextRequest) {
     const imagePrompts = parseImagePrompts(raw)
 
     const cutCount = calculateCutCount(scene)
-    const cutsPrompt = buildImagePromptCutsPrompt(scene, project, analysis, characterContext, cutCount)
+    const cutsPrompt = buildImagePromptCutsPrompt(scene, project, analysis, characterContext, cutCount, [], storyboardFrames || [])
     const cutsRaw = await callGeminiWithRetry(cutsPrompt)
     const imagePromptCuts = parseImagePromptCuts(cutsRaw)
 

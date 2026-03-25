@@ -1,13 +1,13 @@
 import {
   Scene, Project, Character, ConfirmedAsset,
   AgentResult, AgentStepInfo, AgentProgress, AgentStepName,
-  SceneAnalysis, CharacterContext, ImagePrompts, ImagePromptCut, VideoPrompts, StoryboardFrame, ValidationResult,
+  SceneAnalysis, CharacterContext, ImagePrompts, ImagePromptCut, VideoPrompts, VideoPromptCut, StoryboardFrame, ValidationResult,
 } from '@/types'
 import { buildAnalyzePrompt, parseAnalysisResult } from './steps/step1_analyze'
 import { buildCharacterContext } from './steps/step2_characters'
 import { buildScriptPrompt } from './steps/step3_script'
 import { buildImagePromptPrompt, parseImagePrompts, buildImagePromptCutsPrompt, parseImagePromptCuts } from './steps/step4_imagePrompt'
-import { buildVideoPromptPrompt, parseVideoPrompts } from './steps/step5_videoPrompt'
+import { buildVideoPromptPrompt, parseVideoPrompts, buildVideoPromptCutsPrompt, parseVideoPromptCuts } from './steps/step5_videoPrompt'
 import { buildStoryboardPrompt, parseStoryboardFrames } from './steps/step6_storyboard'
 import { buildValidatePrompt, parseValidationResult } from './steps/step7_validate'
 import { calculateCutCount } from './steps/helpers'
@@ -56,19 +56,20 @@ export class SceneDirectorAgent {
       { id: 'analyze', label: '씬 감정 흐름 분석 중...', status: 'pending' },
       { id: 'character', label: '캐릭터 컨텍스트 구성 중...', status: 'pending' },
       { id: 'script', label: '연출 스크립트 작성 중...', status: 'pending' },
+      { id: 'storyboard', label: '스토리보드 프레임 분해 중...', status: 'pending' },
       { id: 'image', label: '이미지 프롬프트 생성 중...', status: 'pending' },
       { id: 'video', label: '영상 프롬프트 생성 중...', status: 'pending' },
-      { id: 'storyboard', label: '스토리보드 프레임 분해 중...', status: 'pending' },
       { id: 'validate', label: '품질 검증 및 정제 중...', status: 'pending' },
     ]
 
     let analysis: SceneAnalysis = { emotionFlow: '', narrativePosition: '', keyVisualMoment: '', technicalRequirements: '', childSafetyNotes: '', raw: '' }
     let characterContext: CharacterContext = { characterCount: 0, context: '', characters: [] }
     let directorScript = ''
+    let storyboardFrames: StoryboardFrame[] = []
     let imagePrompts: ImagePrompts = { base: '', midjourney: '', imagen: '', negativePrompt: '' }
     let imagePromptCuts: ImagePromptCut[] = []
     let videoPrompts: VideoPrompts = { veo: '', sora: '', runway: '' }
-    let storyboardFrames: StoryboardFrame[] = []
+    let videoPromptCuts: VideoPromptCut[] = []
     const cutCount = calculateCutCount(scene)
     let validation: ValidationResult = { styleCompliance: '', prohibitedCheck: '', keyElementReflection: '', recommendations: '', qualityGrade: 'B', raw: '' }
 
@@ -120,59 +121,66 @@ export class SceneDirectorAgent {
       this.report('error', 3, `연출 스크립트 생성 실패: ${e.message}`)
     }
 
-    // ── Step 4: 이미지 프롬프트 (대표 1장 + 컷별 다수) ──
+    // ── Step 4: 스토리보드 (연출 스크립트 기반 먼저 생성 → 이미지/영상 프롬프트에 반영) ──
     steps[3].status = 'running'
-    this.report('imagePrompt', 4, `이미지 프롬프트 생성 중... (${cutCount}컷)`)
+    this.report('storyboard', 4, '스토리보드 프레임 분해 중...')
+    try {
+      const prompt = buildStoryboardPrompt(scene, analysis, directorScript, cutCount)
+      const raw = await callGemini(prompt)
+      storyboardFrames = parseStoryboardFrames(raw)
+      steps[3].status = 'done'
+      steps[3].result = `스토리보드 ${storyboardFrames.length}컷 생성 완료`
+      this.report('storyboard', 4, `스토리보드 ${storyboardFrames.length}컷 생성 완료`, { storyboardFrames })
+    } catch (e: any) {
+      steps[3].status = 'error'
+      steps[3].error = e.message
+      this.report('error', 4, `스토리보드 생성 실패: ${e.message}`)
+    }
+
+    // ── Step 5: 이미지 프롬프트 (스토리보드 + 연출 스크립트 기반) ──
+    steps[4].status = 'running'
+    this.report('imagePrompt', 5, `이미지 프롬프트 생성 중... (${cutCount}컷)`)
     try {
       // 대표 프롬프트 1세트 (하위 호환용)
       const prompt = buildImagePromptPrompt(scene, project, analysis, characterContext, confirmedAssets)
       const raw = await callGemini(prompt)
       imagePrompts = parseImagePrompts(raw)
 
-      // 컷별 프롬프트 생성
-      const cutsPrompt = buildImagePromptCutsPrompt(scene, project, analysis, characterContext, cutCount, confirmedAssets)
+      // 컷별 프롬프트 생성 — 스토리보드 프레임 주입
+      const cutsPrompt = buildImagePromptCutsPrompt(scene, project, analysis, characterContext, cutCount, confirmedAssets, storyboardFrames)
       const cutsRaw = await callGemini(cutsPrompt)
       imagePromptCuts = parseImagePromptCuts(cutsRaw)
 
-      steps[3].status = 'done'
-      steps[3].result = `이미지 프롬프트 ${imagePromptCuts.length}컷 생성 완료`
-      this.report('imagePrompt', 4, `이미지 프롬프트 ${imagePromptCuts.length}컷 생성 완료`, { imagePrompts, imagePromptCuts })
-    } catch (e: any) {
-      steps[3].status = 'error'
-      steps[3].error = e.message
-      this.report('error', 4, `이미지 프롬프트 생성 실패: ${e.message}`)
-    }
-
-    // ── Step 5: 영상 프롬프트 ──
-    steps[4].status = 'running'
-    this.report('videoPrompt', 5, '영상 프롬프트 생성 중...')
-    try {
-      const prompt = buildVideoPromptPrompt(scene, project, directorScript)
-      const raw = await callGemini(prompt)
-      videoPrompts = parseVideoPrompts(raw)
       steps[4].status = 'done'
-      steps[4].result = 'Veo/Sora/Runway 프롬프트 생성 완료'
-      this.report('videoPrompt', 5, 'Veo/Sora/Runway 프롬프트 생성 완료', { videoPrompts })
+      steps[4].result = `이미지 프롬프트 ${imagePromptCuts.length}컷 생성 완료`
+      this.report('imagePrompt', 5, `이미지 프롬프트 ${imagePromptCuts.length}컷 생성 완료`, { imagePrompts, imagePromptCuts })
     } catch (e: any) {
       steps[4].status = 'error'
       steps[4].error = e.message
-      this.report('error', 5, `영상 프롬프트 생성 실패: ${e.message}`)
+      this.report('error', 5, `이미지 프롬프트 생성 실패: ${e.message}`)
     }
 
-    // ── Step 6: 스토리보드 ──
+    // ── Step 6: 영상 프롬프트 컷별 (스토리보드 + 연출 스크립트 기반) ──
     steps[5].status = 'running'
-    this.report('storyboard', 6, '스토리보드 프레임 분해 중...')
+    this.report('videoPrompt', 6, `영상 프롬프트 생성 중... (${cutCount}컷)`)
     try {
-      const prompt = buildStoryboardPrompt(scene, analysis, directorScript, cutCount)
+      // 대표 씬 단위 프롬프트 (하위 호환용)
+      const prompt = buildVideoPromptPrompt(scene, project, directorScript)
       const raw = await callGemini(prompt)
-      storyboardFrames = parseStoryboardFrames(raw)
+      videoPrompts = parseVideoPrompts(raw)
+
+      // 컷별 영상 프롬프트 생성 — 스토리보드 + 연출 스크립트 기반
+      const cutsPrompt = buildVideoPromptCutsPrompt(scene, project, directorScript, storyboardFrames, cutCount)
+      const cutsRaw = await callGemini(cutsPrompt)
+      videoPromptCuts = parseVideoPromptCuts(cutsRaw)
+
       steps[5].status = 'done'
-      steps[5].result = `스토리보드 ${storyboardFrames.length}컷 생성 완료`
-      this.report('storyboard', 6, `스토리보드 ${storyboardFrames.length}컷 생성 완료`, { storyboardFrames })
+      steps[5].result = `영상 프롬프트 ${videoPromptCuts.length}컷 생성 완료`
+      this.report('videoPrompt', 6, `Veo/Sora/Runway ${videoPromptCuts.length}컷 생성 완료`, { videoPrompts, videoPromptCuts })
     } catch (e: any) {
       steps[5].status = 'error'
       steps[5].error = e.message
-      this.report('error', 6, `스토리보드 생성 실패: ${e.message}`)
+      this.report('error', 6, `영상 프롬프트 생성 실패: ${e.message}`)
     }
 
     // ── Step 7: 품질 검증 ──
@@ -204,6 +212,7 @@ export class SceneDirectorAgent {
       imagePrompts,
       imagePromptCuts,
       videoPrompts,
+      videoPromptCuts,
       storyboardFrames,
       validation,
       agentAnalysis: validation.raw,

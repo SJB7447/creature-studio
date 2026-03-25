@@ -1,14 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { callGeminiWithRetry } from '@/lib/gemini'
-import { buildVideoPromptPrompt, parseVideoPrompts } from '@/agents/steps/step5_videoPrompt'
-import { Scene, Project } from '@/types'
+import { buildVideoPromptPrompt, parseVideoPrompts, buildVideoPromptCutsPrompt, parseVideoPromptCuts } from '@/agents/steps/step5_videoPrompt'
+import { Scene, Project, StoryboardFrame } from '@/types'
+import { calculateCutCount } from '@/agents/steps/helpers'
 
 export async function POST(req: NextRequest) {
   try {
-    const { scene, project, directorScript } = await req.json() as {
+    const { scene, project, directorScript, storyboardFrames } = await req.json() as {
       scene: Scene
       project: Project
       directorScript: string
+      storyboardFrames?: StoryboardFrame[]
     }
 
     if (!scene || !project || !directorScript) {
@@ -19,7 +21,13 @@ export async function POST(req: NextRequest) {
     const raw = await callGeminiWithRetry(prompt)
     const videoPrompts = parseVideoPrompts(raw)
 
-    return NextResponse.json({ result: videoPrompts })
+    const frames = storyboardFrames || []
+    const cutCount = calculateCutCount(scene)
+    const cutsPrompt = buildVideoPromptCutsPrompt(scene, project, directorScript, frames, cutCount)
+    const cutsRaw = await callGeminiWithRetry(cutsPrompt)
+    const videoPromptCuts = parseVideoPromptCuts(cutsRaw)
+
+    return NextResponse.json({ result: videoPrompts, videoPromptCuts })
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
