@@ -61,8 +61,8 @@ export default function LibraryPage() {
   const [favoritesOnly, setFavoritesOnly] = useState(false)
   const [favorites, setFavorites] = useState<Set<string>>(new Set())
   const [expanded, setExpanded] = useState<Set<string>>(new Set())
-  const [collapsedEpisodes, setCollapsedEpisodes] = useState<Set<string>>(new Set())
-  const [collapsedScenes, setCollapsedScenes] = useState<Set<string>>(new Set())
+  const [expandedEpisodes, setExpandedEpisodes] = useState<Set<string>>(new Set())
+  const [expandedScenes, setExpandedScenes] = useState<Set<string>>(new Set())
   const [exportOpen, setExportOpen] = useState(false)
 
   // Load favorites from localStorage
@@ -296,7 +296,7 @@ export default function LibraryPage() {
         return (
           <div className="space-y-3">
             {episodes.map(ep => {
-              const epCollapsed = collapsedEpisodes.has(ep.epId)
+              const epCollapsed = !expandedEpisodes.has(ep.epId)
               const scenes = Array.from(ep.scenes.values()).sort((a, b) => a.sceneNum - b.sceneNum)
               const totalItems = scenes.reduce((n, s) => n + s.items.length, 0)
 
@@ -304,7 +304,7 @@ export default function LibraryPage() {
                 <div key={ep.epId} className="rounded-xl border overflow-hidden" style={{ borderColor: 'var(--color-border)' }}>
                   {/* Episode header */}
                   <button
-                    onClick={() => setCollapsedEpisodes(prev => { const n = new Set(prev); n.has(ep.epId) ? n.delete(ep.epId) : n.add(ep.epId); return n })}
+                    onClick={() => setExpandedEpisodes(prev => { const n = new Set(prev); n.has(ep.epId) ? n.delete(ep.epId) : n.add(ep.epId); return n })}
                     className="w-full flex items-center gap-3 px-4 py-3 text-left hover:opacity-80 transition-opacity"
                     style={{ background: 'var(--color-surface-2)' }}
                   >
@@ -320,13 +320,13 @@ export default function LibraryPage() {
                     <div className="divide-y" style={{ borderColor: 'var(--color-border)' }}>
                       {scenes.map(scene => {
                         const sceneKey = `${ep.epId}-${scene.sceneId}`
-                        const sceneCollapsed = collapsedScenes.has(sceneKey)
+                        const sceneCollapsed = !expandedScenes.has(sceneKey)
 
                         return (
                           <div key={scene.sceneId}>
                             {/* Scene header */}
                             <button
-                              onClick={() => setCollapsedScenes(prev => { const n = new Set(prev); n.has(sceneKey) ? n.delete(sceneKey) : n.add(sceneKey); return n })}
+                              onClick={() => setExpandedScenes(prev => { const n = new Set(prev); n.has(sceneKey) ? n.delete(sceneKey) : n.add(sceneKey); return n })}
                               className="w-full flex items-center gap-3 px-4 py-2.5 text-left hover:opacity-80 transition-opacity"
                               style={{ background: 'var(--color-surface)' }}
                             >
