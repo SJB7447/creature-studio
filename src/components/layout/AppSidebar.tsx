@@ -6,6 +6,8 @@ import { cn } from '@/lib/utils'
 import { LayoutDashboard, Film, Users, Settings, LayoutGrid, Library, Download, Clapperboard, X, Lock } from 'lucide-react'
 import { useProjectStore } from '@/store/projectStore'
 import { useUIStore } from '@/store/uiStore'
+import { useQuery } from '@tanstack/react-query'
+import { getProject } from '@/lib/firestore'
 
 const navItems = [
   { href: '/dashboard', label: '대시보드', icon: LayoutDashboard },
@@ -16,23 +18,32 @@ export function AppSidebar() {
   const { currentProject, currentEpisode, currentScene } = useProjectStore()
   const { sidebarOpen, setSidebarOpen } = useUIStore()
 
-  const projectNav = currentProject ? [
-    { href: `/projects/${currentProject.id}`, label: '에피소드', icon: Film },
-    { href: `/projects/${currentProject.id}/characters`, label: '캐릭터', icon: Users },
-    { href: `/projects/${currentProject.id}/assets`, label: '확정 에셋', icon: Lock },
-    { href: `/projects/${currentProject.id}/library`, label: '라이브러리', icon: Library },
-    { href: `/projects/${currentProject.id}/export`, label: '내보내기', icon: Download },
-    { href: `/projects/${currentProject.id}/settings`, label: '설정', icon: Settings },
+  // 새로고침 시 store가 초기화되므로 URL에서 projectId를 읽어 직접 조회
+  const projectIdFromPath = pathname.match(/\/projects\/([^/]+)/)?.[1]
+  const { data: fetchedProject } = useQuery({
+    queryKey: ['project', projectIdFromPath],
+    queryFn: () => getProject(projectIdFromPath!),
+    enabled: !!projectIdFromPath && !currentProject,
+  })
+  const activeProject = currentProject || fetchedProject || null
+
+  const projectNav = activeProject ? [
+    { href: `/projects/${activeProject.id}`, label: '에피소드', icon: Film },
+    { href: `/projects/${activeProject.id}/characters`, label: '캐릭터', icon: Users },
+    { href: `/projects/${activeProject.id}/assets`, label: '확정 에셋', icon: Lock },
+    { href: `/projects/${activeProject.id}/library`, label: '라이브러리', icon: Library },
+    { href: `/projects/${activeProject.id}/export`, label: '내보내기', icon: Download },
+    { href: `/projects/${activeProject.id}/settings`, label: '설정', icon: Settings },
   ] : []
 
-  const episodeNav = currentProject && currentEpisode ? [
+  const episodeNav = activeProject && currentEpisode ? [
     ...(currentScene ? [{
-      href: `/projects/${currentProject.id}/episodes/${currentEpisode.id}/scenes/${currentScene.id}`,
+      href: `/projects/${activeProject.id}/episodes/${currentEpisode.id}/scenes/${currentScene.id}`,
       label: '씬 에디터',
       icon: Clapperboard,
     }] : []),
     {
-      href: `/projects/${currentProject.id}/episodes/${currentEpisode.id}/storyboard`,
+      href: `/projects/${activeProject.id}/episodes/${currentEpisode.id}/storyboard`,
       label: '스토리보드',
       icon: LayoutGrid,
     },
@@ -104,10 +115,10 @@ export function AppSidebar() {
             </Link>
           ))}
 
-          {currentProject && (
+          {activeProject && (
             <div className="mt-4 pt-4 border-t" style={{ borderColor: 'var(--color-border)' }}>
               <p className="text-[11px] px-3 mb-2 truncate font-semibold" style={{ color: 'var(--color-text-sub)' }}>
-                {currentProject.title}
+                {activeProject.title}
               </p>
               {projectNav.map((item) => (
                 <Link
