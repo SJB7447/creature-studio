@@ -10,12 +10,14 @@ import {
   deleteScene,
   updateSceneAssets,
   subscribeScenes,
+  subscribeScene,
 } from '@/lib/firestore'
 import { Scene, SceneAssets } from '@/types'
 
 export function useScene(projectId: string, episodeId: string, sceneId?: string) {
   const qc = useQueryClient()
   const [realtimeScenes, setRealtimeScenes] = useState<Scene[] | null>(null)
+  const [realtimeScene, setRealtimeScene] = useState<Scene | null | undefined>(undefined)
   const [subscriptionError, setSubscriptionError] = useState<Error | null>(null)
 
   // ─── 씬 목록 조회 ─────────────────────────────────
@@ -32,7 +34,7 @@ export function useScene(projectId: string, episodeId: string, sceneId?: string)
     enabled: !!projectId && !!episodeId && !!sceneId,
   })
 
-  // ─── 실시간 구독 ──────────────────────────────────
+  // ─── 실시간 구독: 씬 목록 ─────────────────────────
   useEffect(() => {
     if (!projectId || !episodeId) return
     const unsub = subscribeScenes(
@@ -46,6 +48,22 @@ export function useScene(projectId: string, episodeId: string, sceneId?: string)
     )
     return unsub
   }, [projectId, episodeId, qc])
+
+  // ─── 실시간 구독: 단일 씬 ──────────────────────────
+  useEffect(() => {
+    if (!projectId || !episodeId || !sceneId) return
+    const unsub = subscribeScene(
+      projectId,
+      episodeId,
+      sceneId,
+      (scene) => {
+        setRealtimeScene(scene)
+        qc.setQueryData(['scene', projectId, episodeId, sceneId], scene)
+      },
+      (err) => setSubscriptionError(err)
+    )
+    return unsub
+  }, [projectId, episodeId, sceneId, qc])
 
   // ─── 뮤테이션: 생성 ────────────────────────────────
   const createMutation = useMutation({
@@ -91,8 +109,8 @@ export function useScene(projectId: string, episodeId: string, sceneId?: string)
     scenesError: scenesQuery.error as Error | null,
 
     // 단일 씬
-    scene: sceneQuery.data ?? null,
-    sceneLoading: sceneQuery.isLoading,
+    scene: realtimeScene !== undefined ? realtimeScene : (sceneQuery.data ?? null),
+    sceneLoading: sceneQuery.isLoading && realtimeScene === undefined,
     sceneError: sceneQuery.error as Error | null,
 
     // 실시간 구독 에러

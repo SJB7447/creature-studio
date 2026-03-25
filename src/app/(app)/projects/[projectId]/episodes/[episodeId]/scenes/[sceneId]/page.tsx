@@ -2,7 +2,9 @@
 
 import { useParams } from 'next/navigation'
 import { useQuery } from '@tanstack/react-query'
-import { getScene, getProject, getCharacters } from '@/lib/firestore'
+import { getCharacters } from '@/lib/firestore'
+import { useProject } from '@/hooks/useProject'
+import { useScene } from '@/hooks/useScene'
 import { useProjectStore } from '@/store/projectStore'
 import { useEffect } from 'react'
 import { SceneEditor } from '@/components/scenes/SceneEditor'
@@ -13,19 +15,10 @@ export default function ScenePage() {
     episodeId: string
     sceneId: string
   }>()
-  const { currentProject, setCurrentScene, setCharacters } = useProjectStore()
+  const { setCurrentScene, setCharacters } = useProjectStore()
 
-  const { data: scene, isLoading: sceneLoading } = useQuery({
-    queryKey: ['scene', projectId, episodeId, sceneId],
-    queryFn: () => getScene(projectId, episodeId, sceneId),
-    enabled: !!sceneId,
-  })
-
-  const { data: project } = useQuery({
-    queryKey: ['project', projectId],
-    queryFn: () => getProject(projectId),
-    enabled: !!projectId && !currentProject,
-  })
+  const { project } = useProject(projectId)
+  const { scene, sceneLoading } = useScene(projectId, episodeId, sceneId)
 
   const { data: chars = [] } = useQuery({
     queryKey: ['characters', projectId],
@@ -38,7 +31,7 @@ export default function ScenePage() {
     if (chars.length) setCharacters(chars)
   }, [scene, chars, setCurrentScene, setCharacters])
 
-  const activeProject = currentProject || project
+  const activeProject = project
 
   if (sceneLoading) {
     return (

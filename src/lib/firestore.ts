@@ -232,14 +232,47 @@ export function subscribeProjects(
   callback: (projects: Project[]) => void,
   onError?: (error: Error) => void
 ): Unsubscribe {
-  const q = query(
+  // Firestore doesn't support OR queries across fields, so use two listeners merged
+  const cache = new Map<string, Project>()
+
+  function emit() {
+    const all = Array.from(cache.values()).sort((a, b) => {
+      const aTime = (a.updatedAt as any)?.toDate?.()?.getTime() || 0
+      const bTime = (b.updatedAt as any)?.toDate?.()?.getTime() || 0
+      return bTime - aTime
+    })
+    callback(all)
+  }
+
+  const ownedQ = query(
     collection(db, 'projects'),
-    where('ownerId', '==', userId),
-    orderBy('updatedAt', 'desc')
+    where('ownerId', '==', userId)
   )
-  return onSnapshot(q, (snap) => {
-    callback(snap.docs.map(d => ({ id: d.id, ...d.data() } as Project)))
+  const collabQ = query(
+    collection(db, 'projects'),
+    where('collaborators', 'array-contains', userId)
+  )
+
+  const unsubOwned = onSnapshot(ownedQ, (snap) => {
+    snap.docs.forEach(d => cache.set(d.id, { id: d.id, ...d.data() } as Project))
+    snap.docChanges().forEach(change => {
+      if (change.type === 'removed') cache.delete(change.doc.id)
+    })
+    emit()
   }, onError)
+
+  const unsubCollab = onSnapshot(collabQ, (snap) => {
+    snap.docs.forEach(d => cache.set(d.id, { id: d.id, ...d.data() } as Project))
+    snap.docChanges().forEach(change => {
+      if (change.type === 'removed') cache.delete(change.doc.id)
+    })
+    emit()
+  }, onError)
+
+  return () => {
+    unsubOwned()
+    unsubCollab()
+  }
 }
 
 export function subscribeProject(
@@ -280,6 +313,23 @@ export function subscribeScenes(
   return onSnapshot(q, (snap) => {
     callback(snap.docs.map(d => ({ id: d.id, ...d.data() } as Scene)))
   }, onError)
+}
+
+export function subscribeScene(
+  projectId: string,
+  episodeId: string,
+  sceneId: string,
+  callback: (scene: Scene | null) => void,
+  onError?: (error: Error) => void
+): Unsubscribe {
+  return onSnapshot(
+    doc(db, 'projects', projectId, 'episodes', episodeId, 'scenes', sceneId),
+    (snap) => {
+      if (!snap.exists()) return callback(null)
+      callback({ id: snap.id, ...snap.data() } as Scene)
+    },
+    onError
+  )
 }
 
 export function subscribeCharacters(

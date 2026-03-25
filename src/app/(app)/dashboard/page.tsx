@@ -1,8 +1,7 @@
 'use client'
 
-import { useQuery } from '@tanstack/react-query'
 import { useAuthStore } from '@/store/authStore'
-import { getProjects } from '@/lib/firestore'
+import { useProject } from '@/hooks/useProject'
 import { ProjectCard } from '@/components/projects/ProjectCard'
 import { motion } from 'framer-motion'
 import { FolderOpen, Film, Zap, Clock, Plus, Search, Users } from 'lucide-react'
@@ -27,17 +26,7 @@ export default function DashboardPage() {
   const [filter, setFilter] = useState<FilterStatus>('all')
   const [search, setSearch] = useState('')
 
-  const { data: projects = [], isLoading, error: queryError } = useQuery({
-    queryKey: ['projects', user?.uid],
-    queryFn: () => getProjects(user!.uid),
-    enabled: !!user,
-    retry: 2,
-  })
-
-  // Firestore 쿼리 에러 로깅
-  if (queryError) {
-    console.error('[Dashboard] 프로젝트 조회 실패:', queryError)
-  }
+  const { projects, projectsLoading: isLoading } = useProject()
 
   const filtered = projects.filter(p => {
     let matchStatus = false

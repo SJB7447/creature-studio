@@ -1,8 +1,8 @@
 'use client'
 
 import { useParams } from 'next/navigation'
-import { useQuery } from '@tanstack/react-query'
-import { getEpisode, getScenes, getProject } from '@/lib/firestore'
+import { useEpisode } from '@/hooks/useEpisode'
+import { useScene } from '@/hooks/useScene'
 import { useProjectStore } from '@/store/projectStore'
 import { useEffect } from 'react'
 import { SceneList } from '@/components/scenes/SceneList'
@@ -15,17 +15,8 @@ export default function EpisodePage() {
   const { projectId, episodeId } = useParams<{ projectId: string; episodeId: string }>()
   const { setCurrentEpisode } = useProjectStore()
 
-  const { data: episode, isLoading: epLoading } = useQuery({
-    queryKey: ['episode', projectId, episodeId],
-    queryFn: () => getEpisode(projectId, episodeId),
-    enabled: !!projectId && !!episodeId,
-  })
-
-  const { data: scenes = [], isLoading: scenesLoading } = useQuery({
-    queryKey: ['scenes', projectId, episodeId],
-    queryFn: () => getScenes(projectId, episodeId),
-    enabled: !!projectId && !!episodeId,
-  })
+  const { episode, episodeLoading: epLoading } = useEpisode(projectId, episodeId)
+  const { scenes, scenesLoading } = useScene(projectId, episodeId)
 
   useEffect(() => {
     if (episode) setCurrentEpisode(episode)

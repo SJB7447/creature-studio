@@ -1,8 +1,8 @@
 'use client'
 
 import { useParams } from 'next/navigation'
-import { useQuery } from '@tanstack/react-query'
-import { getProject, getEpisodes } from '@/lib/firestore'
+import { useProject } from '@/hooks/useProject'
+import { useEpisode } from '@/hooks/useEpisode'
 import { useProjectStore } from '@/store/projectStore'
 import { useEffect } from 'react'
 import { EpisodeList } from '@/components/episodes/EpisodeList'
@@ -15,17 +15,8 @@ export default function ProjectPage() {
   const { projectId } = useParams<{ projectId: string }>()
   const { setCurrentProject, setCurrentEpisode } = useProjectStore()
 
-  const { data: project, isLoading: projectLoading } = useQuery({
-    queryKey: ['project', projectId],
-    queryFn: () => getProject(projectId),
-    enabled: !!projectId,
-  })
-
-  const { data: episodes = [], isLoading: episodesLoading } = useQuery({
-    queryKey: ['episodes', projectId],
-    queryFn: () => getEpisodes(projectId),
-    enabled: !!projectId,
-  })
+  const { project, projectLoading } = useProject(projectId)
+  const { episodes, episodesLoading } = useEpisode(projectId)
 
   useEffect(() => {
     if (project) {
