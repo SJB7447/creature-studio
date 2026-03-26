@@ -24,7 +24,8 @@ export const IMAGEN_MODELS: Record<ImagenModelId, ImagenModelConfig> = {
   'imagen3': {
     id: 'imagen3',
     label: 'Imagen 3',
-    modelName: 'imagen-3.0-generate-002',
+    // 환경변수 IMAGEN3_MODEL_NAME이 있으면 우선 사용, 없으면 기본값
+    modelName: process.env.IMAGEN3_MODEL_NAME ?? 'imagen-3.0-generate-002',
     desc: '최고화질 · 레퍼런스 없음 · 배경/독립 오브젝트',
     supportsReference: false,
     recommended: 'background',
@@ -32,7 +33,8 @@ export const IMAGEN_MODELS: Record<ImagenModelId, ImagenModelConfig> = {
   'gemini-flash': {
     id: 'gemini-flash',
     label: 'Gemini Flash',
-    modelName: 'gemini-2.0-flash-preview-image-generation',
+    // 환경변수 GEMINI_FLASH_MODEL_NAME이 있으면 우선 사용
+    modelName: process.env.GEMINI_FLASH_MODEL_NAME ?? 'gemini-2.0-flash-preview-image-generation',
     desc: '빠름 · 캐릭터 일관성 · 컷별 생성',
     supportsReference: true,
     recommended: 'cuts',
@@ -40,7 +42,8 @@ export const IMAGEN_MODELS: Record<ImagenModelId, ImagenModelConfig> = {
   'gemini-pro': {
     id: 'gemini-pro',
     label: 'Gemini Pro',
-    modelName: 'gemini-2.0-flash-preview-image-generation', // ← 모델 ID 확정 시 교체
+    // 환경변수 GEMINI_PRO_MODEL_NAME이 있으면 우선 사용
+    modelName: process.env.GEMINI_PRO_MODEL_NAME ?? 'gemini-2.0-flash-preview-image-generation',
     desc: '최고품질 · 레퍼런스 지원 · 대표 이미지',
     supportsReference: true,
     recommended: 'hero',
@@ -85,7 +88,8 @@ async function generateWithImagen3(
   apiKey: string,
   opts: GenerateImageOptions
 ): Promise<GenerateImageResult> {
-  const url = `${GEMINI_API_BASE}/models/${IMAGEN_MODELS.imagen3.modelName}:predict?key=${apiKey}`
+  const modelName = IMAGEN_MODELS.imagen3.modelName
+  const url = `${GEMINI_API_BASE}/models/${modelName}:predict?key=${apiKey}`
 
   const body = {
     instances: [{ prompt: opts.prompt }],
@@ -104,15 +108,19 @@ async function generateWithImagen3(
     body: JSON.stringify(body),
   })
 
+  const rawText = await res.text()
   if (!res.ok) {
-    const err = await res.json().catch(() => ({}))
-    throw new Error(`Imagen 3 오류: ${err?.error?.message ?? res.statusText}`)
+    let errMsg = res.statusText
+    try { errMsg = JSON.parse(rawText)?.error?.message ?? errMsg } catch {}
+    console.error(`[Imagen 3] HTTP ${res.status} — model: ${modelName}\n${rawText}`)
+    throw new Error(`Imagen 3 오류 (HTTP ${res.status}): ${errMsg}`)
   }
 
-  const data = await res.json()
+  const data = JSON.parse(rawText)
   const prediction = data.predictions?.[0]
   if (!prediction?.bytesBase64Encoded) {
-    throw new Error('Imagen 3에서 이미지 데이터를 받지 못했습니다.')
+    console.error('[Imagen 3] 응답에 이미지 데이터 없음:', rawText.slice(0, 500))
+    throw new Error('Imagen 3 응답에 이미지 데이터가 없습니다. 안전 필터 또는 모델 접근 권한을 확인하세요.')
   }
   return { imageData: prediction.bytesBase64Encoded, mimeType: prediction.mimeType ?? 'image/png', modelUsed: 'imagen3' }
 }
@@ -143,15 +151,27 @@ async function generateWithGemini(
     body: JSON.stringify(body),
   })
 
+  const rawText = await res.text()
   if (!res.ok) {
-    const err = await res.json().catch(() => ({}))
-    throw new Error(`${IMAGEN_MODELS[modelId].label} 오류: ${err?.error?.message ?? res.statusText}`)
+    let errMsg = res.statusText
+    try { errMsg = JSON.parse(rawText)?.error?.message ?? errMsg } catch {}
+    console.error(`[${IMAGEN_MODELS[modelId].label}] HTTP ${res.status} — model: ${modelName}\n${rawText}`)
+    throw new Error(`${IMAGEN_MODELS[modelId].label} 오류 (HTTP ${res.status}): ${errMsg}`)
   }
 
-  const data = await res.json()
-  const imagePart = data.candidates?.[0]?.content?.parts?.find((p: any) => p.inline_data)
+  const data = JSON.parse(rawText)
+
+  // 안전 필터로 블록된 경우 확인
+  const candidate = data.candidates?.[0]
+  if (candidate?.finishReason && candidate.finishReason !== 'STOP') {
+    console.error(`[${IMAGEN_MODELS[modelId].label}] 생성 블록됨: ${candidate.finishReason}`, rawText.slice(0, 500))
+    throw new Error(`${IMAGEN_MODELS[modelId].label}: 이미지 생성이 차단되었습니다 (${candidate.finishReason}). 프롬프트를 수정해 보세요.`)
+  }
+
+  const imagePart = candidate?.content?.parts?.find((p: any) => p.inline_data)
   if (!imagePart?.inline_data?.data) {
-    throw new Error(`${IMAGEN_MODELS[modelId].label}에서 이미지 데이터를 받지 못했습니다.`)
+    console.error(`[${IMAGEN_MODELS[modelId].label}] 응답에 이미지 없음 — model: ${modelName}\n`, rawText.slice(0, 500))
+    throw new Error(`${IMAGEN_MODELS[modelId].label}: 응답에 이미지 데이터가 없습니다. 모델명(${modelName})이 올바른지 확인하세요.`)
   }
   return {
     imageData: imagePart.inline_data.data,
