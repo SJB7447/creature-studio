@@ -149,6 +149,19 @@ export interface VideoPromptCut {
   prompts: VideoPrompts
 }
 
+export interface GeneratedImage {
+  /** 컷 번호 (0 = 대표 이미지) */
+  cutNumber: number
+  /** base64 data URL (data:image/png;base64,...) or Firebase Storage URL */
+  url: string
+  /** 생성에 사용된 프롬프트 */
+  prompt: string
+  /** 사용된 모델 */
+  model: 'imagen3' | 'gemini-flash'
+  /** 생성 시각 (ISO string) */
+  createdAt: string
+}
+
 export interface SceneAssets {
   directorScript?: string
   imagePrompt?: ImagePrompts
@@ -157,6 +170,7 @@ export interface SceneAssets {
   videoPromptCuts?: VideoPromptCut[]
   storyboardFrames?: StoryboardFrame[]
   agentAnalysis?: string
+  generatedImages?: GeneratedImage[]
 }
 
 export interface SceneTransform {

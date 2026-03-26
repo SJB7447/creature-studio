@@ -29,6 +29,33 @@ export async function uploadConfirmedAsset(
   return uploadProjectFile(projectId, `confirmed-assets/${category}`, file)
 }
 
+/**
+ * 이미지 스튜디오에서 생성된 이미지를 Firebase Storage에 업로드
+ * base64 문자열 → Blob → Storage
+ * 경로: projects/{projectId}/episodes/{episodeId}/scenes/{sceneId}/generated-images/{cutNumber}_{timestamp}.png
+ */
+export async function uploadGeneratedImage(
+  projectId: string,
+  episodeId: string,
+  sceneId: string,
+  cutNumber: number,
+  base64Data: string,
+  mimeType: string = 'image/png'
+): Promise<string> {
+  const byteCharacters = atob(base64Data)
+  const byteArray = new Uint8Array(byteCharacters.length)
+  for (let i = 0; i < byteCharacters.length; i++) {
+    byteArray[i] = byteCharacters.charCodeAt(i)
+  }
+  const blob = new Blob([byteArray], { type: mimeType })
+  const ext = mimeType.split('/')[1] ?? 'png'
+  const timestamp = Date.now()
+  const path = `projects/${projectId}/episodes/${episodeId}/scenes/${sceneId}/generated-images/cut${cutNumber}_${timestamp}.${ext}`
+  const storageRef = ref(storage, path)
+  await uploadBytes(storageRef, blob)
+  return getDownloadURL(storageRef)
+}
+
 export async function deleteStorageFile(fileUrl: string): Promise<void> {
   try {
     const storageRef = ref(storage, fileUrl)

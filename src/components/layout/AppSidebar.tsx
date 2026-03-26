@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { cn } from '@/lib/utils'
-import { LayoutDashboard, Film, Users, Settings, LayoutGrid, Library, Download, Clapperboard, X, Lock } from 'lucide-react'
+import { LayoutDashboard, Film, Users, Settings, LayoutGrid, Library, Download, Clapperboard, X, Lock, Wand2 } from 'lucide-react'
 import { useProjectStore } from '@/store/projectStore'
 import { useUIStore } from '@/store/uiStore'
 import { useQuery } from '@tanstack/react-query'
@@ -46,6 +46,11 @@ export function AppSidebar() {
       href: `/projects/${activeProject.id}/episodes/${currentEpisode.id}/storyboard`,
       label: '스토리보드',
       icon: LayoutGrid,
+    },
+    {
+      href: `/projects/${activeProject.id}/episodes/${currentEpisode.id}/image-studio`,
+      label: '이미지 스튜디오',
+      icon: Wand2,
     },
   ] : []
 

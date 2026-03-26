@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useRef, useEffect, useCallback } from 'react'
+import Link from 'next/link'
 import { DragScrollDiv } from '@/components/ui/DragScrollDiv'
 import { Scene, Project, Character, ConfirmedAsset, AgentResult, AgentStep, ValidationResult } from '@/types'
 import { updateScene, getConfirmedAssets } from '@/lib/firestore'
@@ -13,7 +14,7 @@ import {
   Bot, Play, ChevronDown, CheckCircle, XCircle, Loader2,
   Save, Copy, RefreshCw, Image, Video, FileText, LayoutGrid,
   ChevronUp, AlertTriangle, ChevronRight, Clock, Camera, MessageSquare, Music, Eye,
-  Lock, User, Paintbrush, Sparkles, Volume2
+  Lock, User, Paintbrush, Sparkles, Volume2, Wand2
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { AgentCrewPanel, AgentStepItem } from './AgentCharacters'
@@ -328,6 +329,31 @@ function ConfirmedAssetRefPanel({ confirmedAssets, projectId }: { confirmedAsset
           </motion.div>
         )}
       </AnimatePresence>
+    </div>
+  )
+}
+
+// ─── Image Studio link banner ────────────────────────────
+function ImageStudioBanner({ projectId, episodeId }: { projectId: string; episodeId: string }) {
+  return (
+    <div className="mt-4 pt-4 border-t" style={{ borderColor: 'var(--color-border)' }}>
+      <Link
+        href={`/projects/${projectId}/episodes/${episodeId}/image-studio`}
+        className="flex items-center gap-3 p-3 rounded-xl border transition-colors hover:opacity-90"
+        style={{ background: 'linear-gradient(135deg, #7C3AED14, #4F46E514)', borderColor: '#C4B5FD' }}
+      >
+        <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0"
+          style={{ background: 'linear-gradient(135deg, #7C3AED, #4F46E5)' }}>
+          <Wand2 className="w-4 h-4 text-white" />
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="text-xs font-semibold" style={{ color: '#4F46E5' }}>이미지 스튜디오에서 생성하기</p>
+          <p className="text-[10px] mt-0.5" style={{ color: '#7C3AED' }}>
+            Imagen 3 · Gemini Flash · Gemini Pro · 캐릭터 일관성 · 컷별 생성
+          </p>
+        </div>
+        <ChevronRight className="w-4 h-4 shrink-0" style={{ color: '#7C3AED' }} />
+      </Link>
     </div>
   )
 }
@@ -838,6 +864,9 @@ export function SceneAIPanel({ scene, project, characters, projectId, episodeId,
                     </>
                   )
                 })()}
+
+                {/* ─── Image Studio link ─── */}
+                <ImageStudioBanner projectId={projectId} episodeId={episodeId} />
 
                 <FeedbackBar
                   placeholder="수정하고 싶은 부분을 입력하세요 (예: 더 밝은 톤으로, 캐릭터를 중앙에)"
