@@ -146,16 +146,20 @@ async function generateWithGemini(
     const hasRef = (opts.referenceImages?.length ?? 0) > 0
     const parts: any[] = []
 
+    // 비율 지시 (Gemini는 generationConfig.aspectRatio 미지원 → 프롬프트에 명시)
+    const ar = toImagenAspectRatio(opts.aspectRatio)
+    const arInstruction = `Generate this image in ${ar} (widescreen landscape) aspect ratio.\n\n`
+
     // 레퍼런스 이미지가 있으면 이미지를 먼저 첨부하고 캐릭터 일관성 지시를 명시
     if (hasRef) {
       for (const ref of opts.referenceImages!) {
         parts.push({ inline_data: { mime_type: ref.mimeType, data: ref.data } })
       }
       parts.push({
-        text: `The image(s) above are character reference sheets. Maintain the exact appearance, design, and style of these characters in the generated image.\n\n${opts.prompt}`,
+        text: `${arInstruction}The image(s) above are character reference sheets. Maintain the exact appearance, design, and style of these characters in the generated image.\n\n${opts.prompt}`,
       })
     } else {
-      parts.push({ text: opts.prompt })
+      parts.push({ text: arInstruction + opts.prompt })
     }
 
     const body = {
