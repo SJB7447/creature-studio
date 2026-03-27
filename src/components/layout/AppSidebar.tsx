@@ -7,7 +7,7 @@ import { LayoutDashboard, Film, Users, Settings, LayoutGrid, Library, Download, 
 import { useProjectStore } from '@/store/projectStore'
 import { useUIStore } from '@/store/uiStore'
 import { useQuery } from '@tanstack/react-query'
-import { getProject } from '@/lib/firestore'
+import { getProject, getEpisode, getScene } from '@/lib/firestore'
 
 const navItems = [
   { href: '/dashboard', label: '대시보드', icon: LayoutDashboard },
@@ -18,14 +18,30 @@ export function AppSidebar() {
   const { currentProject, currentEpisode, currentScene } = useProjectStore()
   const { sidebarOpen, setSidebarOpen } = useUIStore()
 
-  // 새로고침 시 store가 초기화되므로 URL에서 projectId를 읽어 직접 조회
+  // 새로고침 시 store가 초기화되므로 URL에서 ID들을 읽어 직접 조회
   const projectIdFromPath = pathname.match(/\/projects\/([^/]+)/)?.[1]
+  const episodeIdFromPath = pathname.match(/\/episodes\/([^/]+)/)?.[1]
+  const sceneIdFromPath = pathname.match(/\/scenes\/([^/]+)/)?.[1]
+
   const { data: fetchedProject } = useQuery({
     queryKey: ['project', projectIdFromPath],
     queryFn: () => getProject(projectIdFromPath!),
     enabled: !!projectIdFromPath && !currentProject,
   })
+  const { data: fetchedEpisode } = useQuery({
+    queryKey: ['episode', projectIdFromPath, episodeIdFromPath],
+    queryFn: () => getEpisode(projectIdFromPath!, episodeIdFromPath!),
+    enabled: !!projectIdFromPath && !!episodeIdFromPath && !currentEpisode,
+  })
+  const { data: fetchedScene } = useQuery({
+    queryKey: ['scene', projectIdFromPath, episodeIdFromPath, sceneIdFromPath],
+    queryFn: () => getScene(projectIdFromPath!, episodeIdFromPath!, sceneIdFromPath!),
+    enabled: !!projectIdFromPath && !!episodeIdFromPath && !!sceneIdFromPath && !currentScene,
+  })
+
   const activeProject = currentProject || fetchedProject || null
+  const activeEpisode = currentEpisode || fetchedEpisode || null
+  const activeScene = currentScene || fetchedScene || null
 
   const projectNav = activeProject ? [
     { href: `/projects/${activeProject.id}`, label: '에피소드', icon: Film },
@@ -36,19 +52,19 @@ export function AppSidebar() {
     { href: `/projects/${activeProject.id}/settings`, label: '설정', icon: Settings },
   ] : []
 
-  const episodeNav = activeProject && currentEpisode ? [
-    ...(currentScene ? [{
-      href: `/projects/${activeProject.id}/episodes/${currentEpisode.id}/scenes/${currentScene.id}`,
+  const episodeNav = activeProject && activeEpisode ? [
+    ...(activeScene ? [{
+      href: `/projects/${activeProject.id}/episodes/${activeEpisode.id}/scenes/${activeScene.id}`,
       label: '씬 에디터',
       icon: Clapperboard,
     }] : []),
     {
-      href: `/projects/${activeProject.id}/episodes/${currentEpisode.id}/storyboard`,
+      href: `/projects/${activeProject.id}/episodes/${activeEpisode.id}/storyboard`,
       label: '스토리보드',
       icon: LayoutGrid,
     },
     {
-      href: `/projects/${activeProject.id}/episodes/${currentEpisode.id}/image-studio`,
+      href: `/projects/${activeProject.id}/episodes/${activeEpisode.id}/image-studio`,
       label: '이미지 스튜디오',
       icon: Wand2,
     },
@@ -149,7 +165,7 @@ export function AppSidebar() {
           {episodeNav.length > 0 && (
             <div className="mt-3 pt-3 border-t" style={{ borderColor: 'var(--color-border)' }}>
               <p className="text-[11px] px-3 mb-2 truncate font-semibold" style={{ color: 'var(--color-text-sub)' }}>
-                EP.{currentEpisode?.number} {currentEpisode?.title}
+                EP.{activeEpisode?.number} {activeEpisode?.title}
               </p>
               {episodeNav.map((item) => (
                 <Link
