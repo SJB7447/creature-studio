@@ -157,7 +157,7 @@ async function generateWithGemini(
     }
     const body = {
       contents: [{ role: 'user', parts }],
-      generationConfig: { responseModalities: ['IMAGE'] },
+      generationConfig: { responseModalities: ['TEXT', 'IMAGE'] },
     }
     const res = await fetch(url, {
       method: 'POST',
