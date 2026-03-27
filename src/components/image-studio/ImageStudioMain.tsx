@@ -278,10 +278,14 @@ function SceneImageCard({
   const [model, setModel] = useState<ImagenModelId>('gemini-flash')
   const [saving, setSaving] = useState(false)
 
-  // Firestore에 저장된 이미지로 초기 상태 복원
+  // Firestore에 저장된 이미지로 초기 상태 복원 (구 데이터 호환: candidates/selectedIndex 없을 수 있음)
   const [generatedMap, setGeneratedMap] = useState<Record<number, GeneratedImage>>(() => {
     const saved = scene.assets.generatedImages ?? []
-    return Object.fromEntries(saved.map(img => [img.cutNumber, img]))
+    return Object.fromEntries(saved.map(img => [img.cutNumber, {
+      ...img,
+      candidates: img.candidates ?? [img.url],
+      selectedIndex: img.selectedIndex ?? 0,
+    }]))
   })
 
   const [generatingCut, setGeneratingCut] = useState<number | null>(null)
@@ -400,7 +404,7 @@ function SceneImageCard({
     const updated: GeneratedImage = {
       ...img,
       selectedIndex: index,
-      url: img.candidates[index],
+      url: (img.candidates ?? [img.url])[index] ?? img.url,
     }
     const nextMap = { ...generatedMap, [cutNum]: updated }
     setGeneratedMap(nextMap)
