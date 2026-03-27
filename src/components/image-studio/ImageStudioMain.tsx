@@ -424,8 +424,9 @@ function SceneImageCard({
   const totalGenerated = Object.keys(generatedMap).length
 
   const { main: activePrompt } = getActivePrompt()
-  const { referenceImageUrls } = buildCharacterPromptSuffix(charSelections, allCharacters, confirmedAssets)
+  const { promptSuffix, referenceImageUrls } = buildCharacterPromptSuffix(charSelections, allCharacters, confirmedAssets)
   const hasRef = referenceImageUrls.length > 0
+  const finalPreviewPrompt = activePrompt + promptSuffix
 
   return (
     <div
@@ -561,12 +562,19 @@ function SceneImageCard({
                   {/* Prompt preview */}
                   {activePrompt && (
                     <div>
-                      <p className="text-[10px] font-semibold mb-1" style={{ color: 'var(--color-text-sub)' }}>
-                        사용 프롬프트 (Imagen 최적화)
-                      </p>
-                      <div className="p-2.5 rounded-lg border text-[10px] font-mono leading-relaxed line-clamp-4"
-                        style={{ background: 'var(--color-surface-2)', borderColor: 'var(--color-border)', color: 'var(--color-text-sub)' }}>
-                        {activePrompt}
+                      <div className="flex items-center justify-between mb-1">
+                        <p className="text-[10px] font-semibold" style={{ color: 'var(--color-text-sub)' }}>
+                          최종 프롬프트 미리보기
+                        </p>
+                        {promptSuffix && (
+                          <span className="text-[9px] px-1.5 py-0.5 rounded font-medium" style={{ background: '#EDE9FE', color: '#7C3AED' }}>
+                            캐릭터 정보 포함
+                          </span>
+                        )}
+                      </div>
+                      <div className="p-2.5 rounded-lg border text-[10px] font-mono leading-relaxed line-clamp-6"
+                        style={{ background: 'var(--color-surface-2)', borderColor: 'var(--color-border)', color: 'var(--color-text-sub)', whiteSpace: 'pre-wrap' }}>
+                        {finalPreviewPrompt}
                       </div>
                     </div>
                   )}
