@@ -162,7 +162,6 @@ async function generateWithGemini(
       contents: [{ role: 'user', parts }],
       generationConfig: {
         responseModalities: ['TEXT', 'IMAGE'],
-        aspectRatio: toImagenAspectRatio(opts.aspectRatio),
       },
     }
     const res = await fetch(url, {
