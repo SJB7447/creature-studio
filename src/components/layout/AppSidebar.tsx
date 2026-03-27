@@ -52,9 +52,12 @@ export function AppSidebar() {
     { href: `/projects/${activeProject.id}/settings`, label: '설정', icon: Settings },
   ] : []
 
+  // sceneId는 URL에서 즉시 알 수 있으므로 Firestore 응답 전에도 메뉴 표시
+  const sceneIdForNav = activeScene?.id ?? sceneIdFromPath
+
   const episodeNav = activeProject && activeEpisode ? [
-    ...(activeScene ? [{
-      href: `/projects/${activeProject.id}/episodes/${activeEpisode.id}/scenes/${activeScene.id}`,
+    ...(sceneIdForNav ? [{
+      href: `/projects/${activeProject.id}/episodes/${activeEpisode.id}/scenes/${sceneIdForNav}`,
       label: '씬 에디터',
       icon: Clapperboard,
     }] : []),
