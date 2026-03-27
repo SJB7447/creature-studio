@@ -246,6 +246,7 @@ export function CharacterController({
           ...(sel.emotionVariant
             ? [char.emotionVariants.find(v => v.emotion === sel.emotionVariant)?.promptAddition].filter(Boolean) as string[]
             : []),
+          ...(sel.customPromptText ? sel.customPromptText.split(',').map(s => s.trim()).filter(Boolean) : []),
         ]
       : sel.customPromptText ? sel.customPromptText.split(',').map(s => s.trim()).filter(Boolean) : []
 
@@ -335,14 +336,22 @@ export function CharacterController({
           </div>
         </div>
 
-        {/* Scene char expanded: emotion + keywords */}
+        {/* Scene char expanded: asset override + emotion + custom prompt + keywords */}
         {!isCustom && sel.included && isExpanded && char && (
           <div className="px-3 pb-3 pt-1 border-t space-y-2.5" style={{ borderColor: '#E5E7EB', background: 'white' }}>
-            {asset && (
+            {/* Manual asset selection — also fixes auto-match failures */}
+            <AssetPicker
+              confirmedAssets={confirmedAssets}
+              selectedId={sel.assetId}
+              onChange={assetId => updateSel(sel.id, { assetId })}
+            />
+
+            {/* Auto-matched asset info when no manual override */}
+            {!sel.assetId && asset && (
               <div className="flex items-center gap-2 p-2 rounded-lg" style={{ background: '#F0FDF4' }}>
                 <ImageIcon className="w-3 h-3 shrink-0" style={{ color: '#059669' }} />
                 <div className="min-w-0">
-                  <p className="text-[10px] font-medium" style={{ color: '#065F46' }}>확정 에셋 레퍼런스 사용</p>
+                  <p className="text-[10px] font-medium" style={{ color: '#065F46' }}>자동 매칭 에셋</p>
                   <p className="text-[10px] truncate" style={{ color: '#059669' }}>{asset.name}</p>
                 </div>
               </div>
@@ -374,6 +383,19 @@ export function CharacterController({
                 })()}
               </div>
             )}
+
+            {/* Additional prompt keywords — available for all scene characters */}
+            <div>
+              <p className="text-[10px] font-semibold mb-1" style={{ color: 'var(--color-text-sub)' }}>추가 프롬프트 키워드 (선택)</p>
+              <input
+                type="text"
+                value={sel.customPromptText ?? ''}
+                onChange={e => updateSel(sel.id, { customPromptText: e.target.value || undefined })}
+                placeholder="예: small size, 3 characters, tiny..."
+                className="w-full px-2.5 py-1.5 rounded-lg border text-[11px] font-mono"
+                style={{ borderColor: 'var(--color-border)', background: 'var(--color-surface)', color: 'var(--color-text)' }}
+              />
+            </div>
 
             {/* Keywords preview */}
             {keywords.length > 0 && (

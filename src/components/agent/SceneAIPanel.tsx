@@ -715,15 +715,17 @@ export function SceneAIPanel({ scene, project, characters, projectId, episodeId,
                   </div>
                 </div>
 
-                {/* Script sections */}
-                {parseScriptSections(result.directorScript).map((sec, i) => {
-                  const Icon = SECTION_ICONS[sec.type] || FileText
-                  return (
-                    <ScriptSection key={i} title={sec.title} icon={Icon} defaultOpen={i < 3}>
-                      <p className="text-xs whitespace-pre-wrap leading-relaxed" style={{ color: 'var(--color-text)' }}>{sec.content.trim()}</p>
-                    </ScriptSection>
-                  )
-                })}
+                {/* Script sections — empty-content sections (e.g. top-level ## title with no body) are hidden */}
+                {parseScriptSections(result.directorScript)
+                  .filter(sec => sec.content.trim().length > 0)
+                  .map((sec, i) => {
+                    const Icon = SECTION_ICONS[sec.type] || FileText
+                    return (
+                      <ScriptSection key={i} title={sec.title} icon={Icon} defaultOpen={i < 3}>
+                        <p className="text-xs whitespace-pre-wrap leading-relaxed" style={{ color: 'var(--color-text)' }}>{sec.content.trim()}</p>
+                      </ScriptSection>
+                    )
+                  })}
 
                 {/* Validation card */}
                 {result.validation && result.validation.styleCompliance && (
