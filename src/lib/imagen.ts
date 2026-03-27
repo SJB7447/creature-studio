@@ -24,8 +24,7 @@ export const IMAGEN_MODELS: Record<ImagenModelId, ImagenModelConfig> = {
   'imagen3': {
     id: 'imagen3',
     label: 'Imagen 3',
-    // 환경변수 IMAGEN3_MODEL_NAME이 있으면 우선 사용, 없으면 기본값
-    modelName: process.env.IMAGEN3_MODEL_NAME ?? 'imagen-3.0-generate-002',
+    modelName: 'imagen-4.0-generate-001',
     desc: '최고화질 · 레퍼런스 없음 · 배경/독립 오브젝트',
     supportsReference: false,
     recommended: 'background',
@@ -33,8 +32,7 @@ export const IMAGEN_MODELS: Record<ImagenModelId, ImagenModelConfig> = {
   'gemini-flash': {
     id: 'gemini-flash',
     label: 'Gemini Flash',
-    // 환경변수 GEMINI_FLASH_MODEL_NAME이 있으면 우선 사용
-    modelName: process.env.GEMINI_FLASH_MODEL_NAME ?? 'gemini-2.0-flash-preview-image-generation',
+    modelName: 'gemini-3.1-flash-image-preview',
     desc: '빠름 · 캐릭터 일관성 · 컷별 생성',
     supportsReference: true,
     recommended: 'cuts',
@@ -42,8 +40,7 @@ export const IMAGEN_MODELS: Record<ImagenModelId, ImagenModelConfig> = {
   'gemini-pro': {
     id: 'gemini-pro',
     label: 'Gemini Pro',
-    // 환경변수 GEMINI_PRO_MODEL_NAME이 있으면 우선 사용
-    modelName: process.env.GEMINI_PRO_MODEL_NAME ?? 'gemini-2.0-flash-preview-image-generation',
+    modelName: 'gemini-3-pro-image-preview',
     desc: '최고품질 · 레퍼런스 지원 · 대표 이미지',
     supportsReference: true,
     recommended: 'hero',
@@ -52,9 +49,6 @@ export const IMAGEN_MODELS: Record<ImagenModelId, ImagenModelConfig> = {
 
 // 실제 모델 ID 교체가 필요한 경우 이 상수만 수정하면 됩니다
 // (예: 'gemini-3-pro-image-preview' 등 확정 모델명으로)
-export function setGeminiProModelName(modelName: string) {
-  IMAGEN_MODELS['gemini-pro'].modelName = modelName
-}
 
 export interface GenerateImageOptions {
   prompt: string
