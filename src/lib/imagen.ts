@@ -177,12 +177,13 @@ async function generateWithGemini(
       console.error(`[${IMAGEN_MODELS[modelId].label}] 생성 블록됨: ${candidate.finishReason}`)
       throw new Error(`${IMAGEN_MODELS[modelId].label}: 이미지 생성이 차단되었습니다 (${candidate.finishReason}). 프롬프트를 수정해 보세요.`)
     }
-    const imagePart = candidate?.content?.parts?.find((p: any) => p.inline_data)
-    if (!imagePart?.inline_data?.data) {
+    const imagePart = candidate?.content?.parts?.find((p: any) => p.inline_data ?? p.inlineData)
+    const inlineData = imagePart?.inline_data ?? imagePart?.inlineData
+    if (!inlineData?.data) {
       console.error(`[${IMAGEN_MODELS[modelId].label}] 응답에 이미지 없음 — model: ${modelName}\n`, rawText.slice(0, 300))
       throw new Error(`${IMAGEN_MODELS[modelId].label}: 응답에 이미지 데이터가 없습니다. 모델명(${modelName})이 올바른지 확인하세요.`)
     }
-    return { imageData: imagePart.inline_data.data, mimeType: imagePart.inline_data.mime_type ?? 'image/png' }
+    return { imageData: inlineData.data, mimeType: inlineData.mime_type ?? inlineData.mimeType ?? 'image/png' }
   }
 
   // count 수만큼 병렬 호출
