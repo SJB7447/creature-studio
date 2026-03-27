@@ -143,15 +143,27 @@ async function generateWithGemini(
   // Gemini는 배치 미지원 → 병렬 호출
   const singleCall = async (): Promise<{ imageData: string; mimeType: string }> => {
     const url = `${GEMINI_API_BASE}/models/${modelName}:generateContent?key=${apiKey}`
-    const parts: any[] = [{ text: opts.prompt }]
-    if (opts.referenceImages && opts.referenceImages.length > 0) {
-      for (const ref of opts.referenceImages) {
+    const hasRef = (opts.referenceImages?.length ?? 0) > 0
+    const parts: any[] = []
+
+    // 레퍼런스 이미지가 있으면 이미지를 먼저 첨부하고 캐릭터 일관성 지시를 명시
+    if (hasRef) {
+      for (const ref of opts.referenceImages!) {
         parts.push({ inline_data: { mime_type: ref.mimeType, data: ref.data } })
       }
+      parts.push({
+        text: `The image(s) above are character reference sheets. Maintain the exact appearance, design, and style of these characters in the generated image.\n\n${opts.prompt}`,
+      })
+    } else {
+      parts.push({ text: opts.prompt })
     }
+
     const body = {
       contents: [{ role: 'user', parts }],
-      generationConfig: { responseModalities: ['TEXT', 'IMAGE'] },
+      generationConfig: {
+        responseModalities: ['TEXT', 'IMAGE'],
+        aspectRatio: toImagenAspectRatio(opts.aspectRatio),
+      },
     }
     const res = await fetch(url, {
       method: 'POST',
