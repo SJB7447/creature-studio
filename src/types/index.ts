@@ -152,13 +152,27 @@ export interface VideoPromptCut {
 export interface GeneratedImage {
   /** 컷 번호 (0 = 대표 이미지) */
   cutNumber: number
-  /** base64 data URL (data:image/png;base64,...) or Firebase Storage URL */
+  /** 현재 선택된 이미지 URL (Firebase Storage) */
   url: string
+  /** 이번 생성 라운드의 후보 이미지 URLs (최대 4장) */
+  candidates: string[]
+  /** 선택된 후보 인덱스 */
+  selectedIndex: number
   /** 생성에 사용된 프롬프트 */
   prompt: string
   /** 사용된 모델 */
-  model: 'imagen3' | 'gemini-flash'
+  model: 'imagen3' | 'gemini-flash' | 'gemini-pro'
   /** 생성 시각 (ISO string) */
+  createdAt: string
+  /** 이전 생성 라운드들 (재생성 히스토리) */
+  history?: GeneratedImageRound[]
+}
+
+export interface GeneratedImageRound {
+  candidates: string[]
+  selectedIndex: number
+  prompt: string
+  model: string
   createdAt: string
 }
 

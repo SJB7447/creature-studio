@@ -40,7 +40,8 @@ export async function uploadGeneratedImage(
   sceneId: string,
   cutNumber: number,
   base64Data: string,
-  mimeType: string = 'image/png'
+  mimeType: string = 'image/png',
+  suffix?: string
 ): Promise<string> {
   const byteCharacters = atob(base64Data)
   const byteArray = new Uint8Array(byteCharacters.length)
@@ -49,8 +50,8 @@ export async function uploadGeneratedImage(
   }
   const blob = new Blob([byteArray], { type: mimeType })
   const ext = mimeType.split('/')[1] ?? 'png'
-  const timestamp = Date.now()
-  const path = `projects/${projectId}/episodes/${episodeId}/scenes/${sceneId}/generated-images/cut${cutNumber}_${timestamp}.${ext}`
+  const fileId = suffix ?? String(Date.now())
+  const path = `projects/${projectId}/episodes/${episodeId}/scenes/${sceneId}/generated-images/cut${cutNumber}_${fileId}.${ext}`
   const storageRef = ref(storage, path)
   await uploadBytes(storageRef, blob)
   return getDownloadURL(storageRef)

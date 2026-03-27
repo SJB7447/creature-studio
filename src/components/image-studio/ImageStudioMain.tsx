@@ -108,44 +108,94 @@ function CutSelector({
   )
 }
 
-// ─── Generated image viewer ───────────────────────────────
-function GeneratedImageView({ image, onDownload }: { image: GeneratedImage; onDownload: () => void }) {
-  const [lightbox, setLightbox] = useState(false)
+// ─── Candidate grid (2×2 selection) ──────────────────────
+function CandidateGrid({
+  image,
+  onSelect,
+}: {
+  image: GeneratedImage
+  onSelect: (index: number) => void
+}) {
+  const [lightboxIdx, setLightboxIdx] = useState<number | null>(null)
+  const candidates = image.candidates ?? [image.url]
+
   return (
     <>
-      <div className="rounded-xl overflow-hidden border" style={{ borderColor: '#C4B5FD' }}>
-        <div className="flex items-center justify-between px-3 py-2" style={{ background: '#F5F3FF' }}>
-          <div className="flex items-center gap-1.5">
-            <CheckCircle className="w-3.5 h-3.5" style={{ color: '#7C3AED' }} />
-            <span className="text-[11px] font-semibold" style={{ color: '#7C3AED' }}>생성 완료</span>
-            <span className="text-[10px]" style={{ color: '#A78BFA' }}>
-              · {IMAGEN_MODELS[image.model as ImagenModelId]?.label ?? image.model}
-            </span>
-          </div>
-          <div className="flex items-center gap-1">
-            <button onClick={() => setLightbox(true)} className="p-1.5 rounded-lg hover:bg-white/60 transition-colors" title="크게 보기">
-              <ZoomIn className="w-3.5 h-3.5" style={{ color: '#7C3AED' }} />
-            </button>
-            <button onClick={onDownload} className="p-1.5 rounded-lg hover:bg-white/60 transition-colors" title="다운로드">
-              <Download className="w-3.5 h-3.5" style={{ color: '#7C3AED' }} />
-            </button>
-          </div>
-        </div>
-        <div className="cursor-zoom-in" onClick={() => setLightbox(true)}>
-          <img src={image.url} alt="Generated" className="w-full object-contain" style={{ maxHeight: 280, background: '#1a1a2e' }} />
+      {/* header */}
+      <div className="flex items-center justify-between mb-2">
+        <div className="flex items-center gap-1.5">
+          <CheckCircle className="w-3.5 h-3.5" style={{ color: '#7C3AED' }} />
+          <span className="text-[11px] font-semibold" style={{ color: '#7C3AED' }}>
+            생성 완료 · {candidates.length}장 후보
+          </span>
+          <span className="text-[10px]" style={{ color: '#A78BFA' }}>
+            · {IMAGEN_MODELS[image.model as ImagenModelId]?.label ?? image.model}
+          </span>
         </div>
       </div>
 
-      {lightbox && (
+      {/* 2×2 grid */}
+      <div className="grid grid-cols-2 gap-1.5">
+        {candidates.map((url, idx) => (
+          <div key={idx} className="relative group">
+            <button
+              onClick={() => onSelect(idx)}
+              className="w-full rounded-lg overflow-hidden border-2 transition-all"
+              style={{
+                borderColor: image.selectedIndex === idx ? '#7C3AED' : 'transparent',
+                boxShadow: image.selectedIndex === idx ? '0 0 0 1px #7C3AED' : undefined,
+              }}
+            >
+              <img
+                src={url}
+                alt={`후보 ${idx + 1}`}
+                className="w-full object-cover"
+                style={{ aspectRatio: '16/9', background: '#1a1a2e' }}
+              />
+            </button>
+            {/* selected badge */}
+            {image.selectedIndex === idx && (
+              <div className="absolute top-1 left-1 px-1.5 py-0.5 rounded-md text-[9px] font-bold text-white pointer-events-none"
+                style={{ background: '#7C3AED' }}>
+                선택됨
+              </div>
+            )}
+            {/* zoom button */}
+            <button
+              onClick={() => setLightboxIdx(idx)}
+              className="absolute top-1 right-1 w-6 h-6 rounded-md flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+              style={{ background: 'rgba(0,0,0,0.55)' }}
+            >
+              <ZoomIn className="w-3.5 h-3.5 text-white" />
+            </button>
+            {/* index badge */}
+            <div className="absolute bottom-1 right-1 px-1.5 py-0.5 rounded-md text-[9px] font-bold text-white pointer-events-none"
+              style={{ background: 'rgba(0,0,0,0.55)' }}>
+              {idx + 1}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <p className="text-[10px] mt-1.5 text-center" style={{ color: 'var(--color-text-sub)' }}>
+        이미지를 클릭하여 최종 선택
+      </p>
+
+      {/* lightbox */}
+      {lightboxIdx !== null && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center p-4"
           style={{ background: 'rgba(0,0,0,0.88)' }}
-          onClick={() => setLightbox(false)}
+          onClick={() => setLightboxIdx(null)}
         >
           <div className="relative max-w-5xl" onClick={e => e.stopPropagation()}>
-            <img src={image.url} alt="Generated" className="max-w-full max-h-[90vh] rounded-xl object-contain" />
+            <img
+              src={candidates[lightboxIdx]}
+              alt="크게보기"
+              className="max-w-full max-h-[90vh] rounded-xl object-contain"
+            />
             <button
-              onClick={() => setLightbox(false)}
+              onClick={() => setLightboxIdx(null)}
               className="absolute top-2 right-2 w-8 h-8 rounded-full flex items-center justify-center"
               style={{ background: 'rgba(0,0,0,0.6)' }}
             >
@@ -153,17 +203,63 @@ function GeneratedImageView({ image, onDownload }: { image: GeneratedImage; onDo
             </button>
             <div className="mt-2 flex justify-center">
               <button
-                onClick={onDownload}
-                className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-white text-sm"
+                onClick={() => onSelect(lightboxIdx)}
+                className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-white text-sm font-semibold"
                 style={{ background: '#7C3AED' }}
               >
-                <Download className="w-4 h-4" /> 다운로드
+                <CheckCircle className="w-4 h-4" /> 이 이미지 선택
               </button>
             </div>
           </div>
         </div>
       )}
     </>
+  )
+}
+
+// ─── History round thumbnails ─────────────────────────────
+function HistorySection({ history }: { history: GeneratedImage['history'] }) {
+  const [open, setOpen] = useState(false)
+  if (!history || history.length === 0) return null
+  return (
+    <div className="mt-3">
+      <button
+        onClick={() => setOpen(v => !v)}
+        className="flex items-center gap-1.5 text-[10px] font-semibold"
+        style={{ color: 'var(--color-text-sub)' }}
+      >
+        {open ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+        이전 생성 기록 {history.length}회
+      </button>
+      {open && (
+        <div className="mt-2 space-y-2">
+          {history.map((round, ri) => (
+            <div key={ri} className="p-2 rounded-lg border" style={{ borderColor: 'var(--color-border)', background: 'var(--color-surface-2)' }}>
+              <p className="text-[9px] mb-1.5 font-semibold" style={{ color: 'var(--color-text-sub)' }}>
+                라운드 {history.length - ri} · {round.model} · {new Date(round.createdAt).toLocaleString('ko')}
+              </p>
+              <div className="flex gap-1.5 flex-wrap">
+                {round.candidates.map((url, ci) => (
+                  <div key={ci} className="relative rounded overflow-hidden border-2"
+                    style={{
+                      borderColor: round.selectedIndex === ci ? '#7C3AED' : 'transparent',
+                      width: 52, height: 36,
+                    }}>
+                    <img src={url} alt="" className="w-full h-full object-cover" />
+                    {round.selectedIndex === ci && (
+                      <div className="absolute inset-0 flex items-center justify-center"
+                        style={{ background: 'rgba(124,58,237,0.25)' }}>
+                        <CheckCircle className="w-3 h-3 text-white" />
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
   )
 }
 
@@ -225,7 +321,7 @@ function SceneImageCard({
       const hasRef = referenceImageUrls.length > 0
       const finalModel: ImagenModelId = hasRef && model === 'imagen3' ? 'gemini-flash' : model
 
-      // 1. 이미지 생성 API 호출
+      // 1. 이미지 4장 생성 API 호출
       const res = await fetch('/api/generate-image', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -234,43 +330,62 @@ function SceneImageCard({
           negativePrompt,
           aspectRatio: project.artContext.aspectRatio,
           model: finalModel,
+          count: 4,
           referenceImageUrls: hasRef ? referenceImageUrls : undefined,
         }),
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error)
 
-      // 2. Firebase Storage에 업로드
+      // 2. 4장 모두 Firebase Storage에 업로드
       setSaving(true)
-      const storageUrl = await uploadGeneratedImage(
-        project.id,
-        scene.episodeId,
-        scene.id,
-        selectedCut,
-        data.imageData,
-        data.mimeType
+      const timestamp = Date.now()
+      const candidateUrls = await Promise.all(
+        (data.images as { imageData: string; mimeType: string }[]).map((img, idx) =>
+          uploadGeneratedImage(
+            project.id, scene.episodeId, scene.id,
+            selectedCut, img.imageData, img.mimeType,
+            `${timestamp}_${idx}`
+          )
+        )
       )
 
+      const now = new Date().toISOString()
+      const prevImg = generatedMap[selectedCut]
       const generated: GeneratedImage = {
         cutNumber: selectedCut,
-        url: storageUrl,
+        url: candidateUrls[0],
+        candidates: candidateUrls,
+        selectedIndex: 0,
         prompt: finalPrompt,
         model: data.model,
-        createdAt: new Date().toISOString(),
+        createdAt: now,
+        // 재생성 시 이전 라운드를 history에 보존
+        history: prevImg
+          ? [
+              ...(prevImg.history ?? []),
+              {
+                candidates: prevImg.candidates ?? [prevImg.url],
+                selectedIndex: prevImg.selectedIndex ?? 0,
+                prompt: prevImg.prompt,
+                model: prevImg.model,
+                createdAt: prevImg.createdAt,
+              },
+            ]
+          : [],
       }
 
       // 3. 로컬 상태 업데이트
       const nextMap = { ...generatedMap, [selectedCut]: generated }
       setGeneratedMap(nextMap)
 
-      // 4. Firestore에 저장 (scene.assets.generatedImages 배열 전체 교체)
-      const allImages = Object.values(nextMap)
+      // 4. Firestore에 저장
       await updateSceneAssets(project.id, scene.episodeId, scene.id, {
-        generatedImages: allImages,
+        generatedImages: Object.values(nextMap),
       })
       queryClient.invalidateQueries({ queryKey: ['scenes', project.id, scene.episodeId] })
 
-      toast.success(`씬 ${scene.number} 이미지 생성 및 저장 완료!`)
+      toast.success(`씬 ${scene.number} ${candidateUrls.length}장 생성 완료! 원하는 이미지를 선택하세요.`)
     } catch (e: any) {
       toast.error('생성 실패: ' + e.message)
     } finally {
@@ -279,11 +394,25 @@ function SceneImageCard({
     }
   }
 
-  function downloadImage(img: GeneratedImage) {
-    const a = document.createElement('a')
-    a.href = img.url
-    a.download = `S${scene.number}_cut${img.cutNumber}_${img.model}_${Date.now()}.png`
-    a.click()
+  async function handleSelectCandidate(cutNum: number, index: number) {
+    const img = generatedMap[cutNum]
+    if (!img || img.selectedIndex === index) return
+    const updated: GeneratedImage = {
+      ...img,
+      selectedIndex: index,
+      url: img.candidates[index],
+    }
+    const nextMap = { ...generatedMap, [cutNum]: updated }
+    setGeneratedMap(nextMap)
+    try {
+      await updateSceneAssets(project.id, scene.episodeId, scene.id, {
+        generatedImages: Object.values(nextMap),
+      })
+      queryClient.invalidateQueries({ queryKey: ['scenes', project.id, scene.episodeId] })
+      toast.success('선택된 이미지가 저장되었습니다.')
+    } catch (e: any) {
+      toast.error('저장 실패: ' + e.message)
+    }
   }
 
   const activeGenerated = generatedMap[selectedCut] ?? null
@@ -462,7 +591,13 @@ function SceneImageCard({
                 {/* Right: Generated image */}
                 <div>
                   {activeGenerated ? (
-                    <GeneratedImageView image={activeGenerated} onDownload={() => downloadImage(activeGenerated)} />
+                    <>
+                      <CandidateGrid
+                        image={activeGenerated}
+                        onSelect={(idx) => handleSelectCandidate(selectedCut, idx)}
+                      />
+                      <HistorySection history={activeGenerated.history} />
+                    </>
                   ) : (
                     <div className="h-full min-h-40 flex flex-col items-center justify-center rounded-xl border-2 border-dashed"
                       style={{ borderColor: 'var(--color-border)' }}>

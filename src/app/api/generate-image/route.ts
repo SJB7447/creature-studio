@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { generateImage, fetchImageAsBase64, ImagenModelId } from '@/lib/imagen'
+import { generateImages, fetchImageAsBase64, ImagenModelId } from '@/lib/imagen'
 
 export interface GenerateImageRequest {
   prompt: string
   negativePrompt?: string
   aspectRatio?: string
   model?: ImagenModelId
-  /** 확정 에셋 / 캐릭터 레퍼런스 이미지 URLs (캐릭터 일관성용) */
+  count?: number  // 생성할 이미지 수 (기본 4)
   referenceImageUrls?: string[]
 }
 
@@ -23,12 +23,12 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: '잘못된 요청 형식입니다.' }, { status: 400 })
   }
 
-  const { prompt, negativePrompt, aspectRatio, model, referenceImageUrls } = body
+  const { prompt, negativePrompt, aspectRatio, model, count = 4, referenceImageUrls } = body
   if (!prompt?.trim()) {
     return NextResponse.json({ error: 'prompt가 필요합니다.' }, { status: 400 })
   }
 
-  // 레퍼런스 이미지 최대 3장 로딩 (request 크기 관리)
+  // 레퍼런스 이미지 로딩 (최대 3장)
   let referenceImages: { mimeType: string; data: string }[] | undefined
   if (referenceImageUrls && referenceImageUrls.length > 0) {
     const fetched = await Promise.all(
@@ -39,20 +39,21 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const result = await generateImage(apiKey, {
+    const result = await generateImages(apiKey, {
       prompt,
       negativePrompt,
       aspectRatio: aspectRatio as any,
       model,
+      count: Math.min(count, 4),
       referenceImages,
     })
 
     return NextResponse.json({
-      imageData: result.imageData,
-      mimeType: result.mimeType,
+      images: result.images,   // Array<{ imageData: string, mimeType: string }>
       model: result.modelUsed,
     })
   } catch (error: any) {
+    console.error('[/api/generate-image] 오류:', error.message)
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
 }

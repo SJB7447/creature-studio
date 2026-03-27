@@ -63,11 +63,18 @@ export interface GenerateImageOptions {
   /** base64 reference images — Gemini Flash/Pro only (캐릭터 일관성) */
   referenceImages?: { mimeType: string; data: string }[]
   model?: ImagenModelId
+  /** 생성할 이미지 수 (기본 4) */
+  count?: number
 }
 
 export interface GenerateImageResult {
-  imageData: string  // base64
+  imageData: string  // base64 (단일 이미지)
   mimeType: string
+  modelUsed: ImagenModelId
+}
+
+export interface GenerateImagesResult {
+  images: Array<{ imageData: string; mimeType: string }>
   modelUsed: ImagenModelId
 }
 
@@ -87,14 +94,15 @@ function toImagenAspectRatio(ar?: string): string {
 async function generateWithImagen3(
   apiKey: string,
   opts: GenerateImageOptions
-): Promise<GenerateImageResult> {
+): Promise<GenerateImagesResult> {
+  const count = Math.min(opts.count ?? 4, 4)
   const modelName = IMAGEN_MODELS.imagen3.modelName
   const url = `${GEMINI_API_BASE}/models/${modelName}:predict?key=${apiKey}`
 
   const body = {
     instances: [{ prompt: opts.prompt }],
     parameters: {
-      sampleCount: 1,
+      sampleCount: count,  // Imagen 3는 네이티브 배치 지원
       aspectRatio: toImagenAspectRatio(opts.aspectRatio),
       ...(opts.negativePrompt ? { negativePrompt: opts.negativePrompt } : {}),
       safetySetting: 'block_only_high',
@@ -117,84 +125,83 @@ async function generateWithImagen3(
   }
 
   const data = JSON.parse(rawText)
-  const prediction = data.predictions?.[0]
-  if (!prediction?.bytesBase64Encoded) {
+  const predictions = data.predictions ?? []
+  if (predictions.length === 0 || !predictions[0]?.bytesBase64Encoded) {
     console.error('[Imagen 3] 응답에 이미지 데이터 없음:', rawText.slice(0, 500))
     throw new Error('Imagen 3 응답에 이미지 데이터가 없습니다. 안전 필터 또는 모델 접근 권한을 확인하세요.')
   }
-  return { imageData: prediction.bytesBase64Encoded, mimeType: prediction.mimeType ?? 'image/png', modelUsed: 'imagen3' }
+  return {
+    images: predictions
+      .filter((p: any) => p.bytesBase64Encoded)
+      .map((p: any) => ({ imageData: p.bytesBase64Encoded, mimeType: p.mimeType ?? 'image/png' })),
+    modelUsed: 'imagen3',
+  }
 }
 
 async function generateWithGemini(
   apiKey: string,
   opts: GenerateImageOptions,
   modelId: 'gemini-flash' | 'gemini-pro'
-): Promise<GenerateImageResult> {
+): Promise<GenerateImagesResult> {
+  const count = Math.min(opts.count ?? 4, 4)
   const modelName = IMAGEN_MODELS[modelId].modelName
-  const url = `${GEMINI_API_BASE}/models/${modelName}:generateContent?key=${apiKey}`
 
-  const parts: any[] = [{ text: opts.prompt }]
-  if (opts.referenceImages && opts.referenceImages.length > 0) {
-    for (const ref of opts.referenceImages) {
-      parts.push({ inline_data: { mime_type: ref.mimeType, data: ref.data } })
+  // Gemini는 배치 미지원 → 병렬 호출
+  const singleCall = async (): Promise<{ imageData: string; mimeType: string }> => {
+    const url = `${GEMINI_API_BASE}/models/${modelName}:generateContent?key=${apiKey}`
+    const parts: any[] = [{ text: opts.prompt }]
+    if (opts.referenceImages && opts.referenceImages.length > 0) {
+      for (const ref of opts.referenceImages) {
+        parts.push({ inline_data: { mime_type: ref.mimeType, data: ref.data } })
+      }
     }
+    const body = {
+      contents: [{ role: 'user', parts }],
+      generationConfig: { responseModalities: ['IMAGE'] },
+    }
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    })
+    const rawText = await res.text()
+    if (!res.ok) {
+      let errMsg = res.statusText
+      try { errMsg = JSON.parse(rawText)?.error?.message ?? errMsg } catch {}
+      console.error(`[${IMAGEN_MODELS[modelId].label}] HTTP ${res.status} — model: ${modelName}\n${rawText}`)
+      throw new Error(`${IMAGEN_MODELS[modelId].label} 오류 (HTTP ${res.status}): ${errMsg}`)
+    }
+    const data = JSON.parse(rawText)
+    const candidate = data.candidates?.[0]
+    if (candidate?.finishReason && candidate.finishReason !== 'STOP') {
+      console.error(`[${IMAGEN_MODELS[modelId].label}] 생성 블록됨: ${candidate.finishReason}`)
+      throw new Error(`${IMAGEN_MODELS[modelId].label}: 이미지 생성이 차단되었습니다 (${candidate.finishReason}). 프롬프트를 수정해 보세요.`)
+    }
+    const imagePart = candidate?.content?.parts?.find((p: any) => p.inline_data)
+    if (!imagePart?.inline_data?.data) {
+      console.error(`[${IMAGEN_MODELS[modelId].label}] 응답에 이미지 없음 — model: ${modelName}\n`, rawText.slice(0, 300))
+      throw new Error(`${IMAGEN_MODELS[modelId].label}: 응답에 이미지 데이터가 없습니다. 모델명(${modelName})이 올바른지 확인하세요.`)
+    }
+    return { imageData: imagePart.inline_data.data, mimeType: imagePart.inline_data.mime_type ?? 'image/png' }
   }
 
-  const body = {
-    contents: [{ role: 'user', parts }],
-    generationConfig: { responseModalities: ['IMAGE'] },
-  }
-
-  const res = await fetch(url, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(body),
-  })
-
-  const rawText = await res.text()
-  if (!res.ok) {
-    let errMsg = res.statusText
-    try { errMsg = JSON.parse(rawText)?.error?.message ?? errMsg } catch {}
-    console.error(`[${IMAGEN_MODELS[modelId].label}] HTTP ${res.status} — model: ${modelName}\n${rawText}`)
-    throw new Error(`${IMAGEN_MODELS[modelId].label} 오류 (HTTP ${res.status}): ${errMsg}`)
-  }
-
-  const data = JSON.parse(rawText)
-
-  // 안전 필터로 블록된 경우 확인
-  const candidate = data.candidates?.[0]
-  if (candidate?.finishReason && candidate.finishReason !== 'STOP') {
-    console.error(`[${IMAGEN_MODELS[modelId].label}] 생성 블록됨: ${candidate.finishReason}`, rawText.slice(0, 500))
-    throw new Error(`${IMAGEN_MODELS[modelId].label}: 이미지 생성이 차단되었습니다 (${candidate.finishReason}). 프롬프트를 수정해 보세요.`)
-  }
-
-  const imagePart = candidate?.content?.parts?.find((p: any) => p.inline_data)
-  if (!imagePart?.inline_data?.data) {
-    console.error(`[${IMAGEN_MODELS[modelId].label}] 응답에 이미지 없음 — model: ${modelName}\n`, rawText.slice(0, 500))
-    throw new Error(`${IMAGEN_MODELS[modelId].label}: 응답에 이미지 데이터가 없습니다. 모델명(${modelName})이 올바른지 확인하세요.`)
-  }
-  return {
-    imageData: imagePart.inline_data.data,
-    mimeType: imagePart.inline_data.mime_type ?? 'image/png',
-    modelUsed: modelId,
-  }
+  // count 수만큼 병렬 호출
+  const results = await Promise.all(Array.from({ length: count }, () => singleCall()))
+  return { images: results, modelUsed: modelId }
 }
 
 /**
- * 이미지 생성 메인 함수
- * - 레퍼런스 이미지가 있고 imagen3를 선택하면 자동으로 gemini-flash로 fallback
+ * 다중 이미지 생성 메인 함수 (4장 후보 생성)
+ * - 레퍼런스 이미지가 있고 imagen3 선택 시 gemini-flash로 자동 fallback
  */
-export async function generateImage(
+export async function generateImages(
   apiKey: string,
   opts: GenerateImageOptions
-): Promise<GenerateImageResult> {
+): Promise<GenerateImagesResult> {
   const hasRef = (opts.referenceImages?.length ?? 0) > 0
-  let modelId = opts.model ?? 'imagen3'
+  let modelId = opts.model ?? 'gemini-flash'
 
-  // imagen3는 레퍼런스 이미지를 지원하지 않으므로 fallback
-  if (hasRef && modelId === 'imagen3') {
-    modelId = 'gemini-flash'
-  }
+  if (hasRef && modelId === 'imagen3') modelId = 'gemini-flash'
 
   switch (modelId) {
     case 'imagen3':
