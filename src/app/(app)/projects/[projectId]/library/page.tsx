@@ -12,7 +12,7 @@ import { toast } from 'sonner'
 import Link from 'next/link'
 
 type AssetType = 'all' | 'script' | 'image' | 'video' | 'storyboard'
-type Platform = 'all' | 'Midjourney' | 'Imagen' | 'Veo2' | 'Sora' | 'Runway'
+type Platform = 'all' | 'Kling' | 'Midjourney' | 'Imagen' | 'Sora' | 'Runway'
 
 interface LibraryItem {
   id: string
@@ -117,6 +117,9 @@ export default function LibraryPage() {
       if (scene.assets?.directorScript) {
         built.push({ ...base, id: `${scene.id}-script`, type: 'script', platform: 'all' as Platform, label: '연출 스크립트', content: scene.assets.directorScript })
       }
+      if (scene.assets?.imagePrompt?.kling) {
+        built.push({ ...base, id: `${scene.id}-kling-img`, type: 'image', platform: 'Kling', label: 'Kling 이미지', content: scene.assets.imagePrompt.kling })
+      }
       if (scene.assets?.imagePrompt?.midjourney) {
         built.push({ ...base, id: `${scene.id}-mj`, type: 'image', platform: 'Midjourney', label: 'Midjourney', content: scene.assets.imagePrompt.midjourney })
       }
@@ -187,7 +190,7 @@ export default function LibraryPage() {
 
   function exportTxtByPlatform() {
     setExportOpen(false)
-    const platforms = ['Midjourney', 'Imagen', 'Veo2', 'Sora', 'Runway'] as const
+    const platforms = ['Kling', 'Midjourney', 'Imagen', 'Sora', 'Runway'] as const
     for (const p of platforms) {
       const pItems = filtered.filter(i => i.platform === p)
       if (pItems.length === 0) continue
@@ -254,7 +257,7 @@ export default function LibraryPage() {
           <option value="all">전체 플랫폼</option>
           <option value="Midjourney">Midjourney</option>
           <option value="Imagen">Imagen</option>
-          <option value="Veo2">Veo 2</option>
+          <option value="Kling">Kling</option>
           <option value="Sora">Sora</option>
           <option value="Runway">Runway</option>
         </select>
