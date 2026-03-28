@@ -214,6 +214,7 @@ export const useAgentStore = create<AgentStore>((set, get) => ({
       set(updates as any)
     } catch (e: any) {
       set({ status: 'error', error: e.message, progressMessage: '생성 실패' })
+      throw e
     }
   },
 

@@ -22,6 +22,30 @@ ${effects.map(a => `  - ${a.name}: ${a.prompt || a.description || '(확정 이�
 `
 }
 
+/** 씬에 한글 텍스트 요소가 있는지 감지하고 플랫폼별 가이드라인 반환 */
+function buildKoreanTextGuidance(scene: Scene): string {
+  const koreanPattern = /[가-힣]/
+  const hasKorean =
+    koreanPattern.test(scene.backgroundDescription || '') ||
+    koreanPattern.test(scene.actionDescription || '') ||
+    koreanPattern.test(scene.title || '')
+
+  if (!hasKorean) return ''
+
+  return `
+[★ 한글 텍스트 렌더링 가이드 — 이 씬에 한글 텍스트 요소가 포함될 수 있음]
+플랫폼별 한글 텍스트 처리 전략:
+
+▸ Kling: 텍스트가 포함된 오브젝트(간판, 책, 자막 등)는 "clean, sharp Korean Hangul text" + "crisp legible characters" + "high-resolution typography" 키워드를 반드시 추가. 텍스트 영역을 별도 레이어처럼 묘사하되, 배경과 대비가 명확한 색상 지정.
+
+▸ Midjourney: 한글 텍스트를 직접 렌더링하지 말고, 텍스트가 있는 오브젝트를 "Korean-style signage/typography aesthetic", "clean minimalist Korean text design", "Korean calligraphy style" 등으로 간접 묘사. 네거티브 프롬프트에 "garbled text, gibberish, misspelled characters, broken typography, illegible text" 반드시 추가.
+
+▸ Imagen 3: 텍스트 렌더링이 가장 우수. 한글 텍스트가 필요한 경우 해당 텍스트를 큰따옴표(" ") 안에 직접 명시 (예: "the sign reads '서울'"처럼). 자연어로 텍스트 배치·서체·색상 상세 기술.
+
+→ 텍스트 품질 공통 원칙: 고해상도 + 선명한 획 + 명확한 배경 대비 강조
+`
+}
+
 /** 기존 단일 이미지 프롬프트 빌더 (하위 호환용, 대표 1장) */
 export function buildImagePromptPrompt(
   scene: Scene,
@@ -35,9 +59,10 @@ export function buildImagePromptPrompt(
     .join('\n')
 
   const confirmedBlock = buildConfirmedAssetBlock(confirmedAssets)
+  const koreanTextGuidance = buildKoreanTextGuidance(scene)
 
   return `당신은 AI 이미지 생성 전문 프롬프트 엔지니어입니다.
-Midjourney, Google Imagen, Stable Diffusion 등의 도구에 정통합니다.
+Midjourney, Google Imagen 3, Kling 등의 도구에 정통하며, 특히 한글 텍스트가 포함된 장면의 고품질 렌더링에 특화되어 있습니다.
 
 [작품 아트 스타일]
 스타일: ${project.artContext.style}
@@ -62,7 +87,7 @@ ${charKeywords || '(캐릭터 없음)'}
 [씬 분석]
 핵심 시각적 순간: ${analysis.keyVisualMoment}
 감정 흐름: ${analysis.emotionFlow}
-${confirmedBlock}
+${confirmedBlock}${koreanTextGuidance}
 ${scene.isAITransformScene && scene.transform ? `[AI 변환 씬 — 변환 후 상태를 중심으로 프롬프트 생성]
 변환 후: ${scene.transform.stateAfter}
 방식: ${scene.transform.transitionStyle}
@@ -70,10 +95,10 @@ ${scene.isAITransformScene && scene.transform ? `[AI 변환 씬 — 변환 후 �
 
 다음 4가지 이미지 프롬프트를 JSON 형식으로 반환하세요:
 {
-  "kling": "Kling 이미지 모델 최적화 (주체·배경·조명·카메라 앵글·스타일을 구체적으로 서술, 영문, 150~200단어)",
-  "midjourney": "Midjourney v6 최적화 (--ar ${project.artContext.aspectRatio.replace(':', ':')} --style raw --v 6.1 포함, 영문)",
-  "imagen": "Google Imagen 3 최적화 (자연어 서술형, 영문, 디테일한 장면 묘사)",
-  "negativePrompt": "네거티브 프롬프트 (금지 요소 + 품질 관련, 영문, 쉼표 구분)"
+  "kling": "Kling 이미지 모델 최적화 (주체·배경·조명·카메라 앵글·스타일 구체적 서술, 영문 150~200단어. 한글 텍스트 포함 시: 'clean sharp Korean Hangul text', 'crisp legible characters', 'high-resolution typography', 'high contrast text against background' 추가)",
+  "midjourney": "Midjourney v6 최적화 (--ar ${project.artContext.aspectRatio.replace(':', ':')} --style raw --v 6.1 포함, 영문. 한글 텍스트 포함 시: 직접 렌더링 대신 'Korean-style typography aesthetic', 'minimalist Korean signage design' 등으로 간접 묘사)",
+  "imagen": "Google Imagen 3 최적화 (자연어 서술형, 영문. 한글 텍스트 포함 시: 텍스트 내용을 큰따옴표 안에 직접 명시 — 예: the sign reads '한글텍스트'. 서체 스타일·크기·색상·배치 상세 기술)",
+  "negativePrompt": "네거티브 프롬프트 (금지 요소 + 품질 관련, 영문, 쉼표 구분. 반드시 포함: garbled text, gibberish, illegible text, broken typography, misspelled characters, blurry text, distorted letters)"
 }
 
 중요:
@@ -81,6 +106,8 @@ ${scene.isAITransformScene && scene.transform ? `[AI 변환 씬 — 변환 후 �
 - 캐릭터의 고정 프롬프트 키워드를 반드시 포함
 - 작품의 아트 스타일을 정확히 반영
 - 금지 요소는 반드시 네거티브 프롬프트에 포함
+- 한글 텍스트가 있는 경우: 각 플랫폼별 가이드라인에 따라 텍스트 품질 키워드 필수 적용
+- 네거티브 프롬프트에 텍스트 품질 관련 항목(garbled text, illegible text 등) 항상 포함
 - 반드시 JSON만 반환하세요.`
 }
 
@@ -132,8 +159,10 @@ export function buildImagePromptCutsPrompt(
       }).join('\n\n')
     : ''
 
+  const koreanTextGuidance = buildKoreanTextGuidance(scene)
+
   return `당신은 AI 이미지 생성 전문 프롬프트 엔지니어입니다.
-Midjourney, Google Imagen, Stable Diffusion 등의 도구에 정통합니다.
+Midjourney, Google Imagen 3, Kling 등의 도구에 정통하며, 한글 텍스트가 포함된 장면의 고품질 렌더링에 특화되어 있습니다.
 
 이 씬은 총 ${durationSec}초 분량이며, 영상 제작을 위해 **${cutCount}장의 이미지 컷**이 필요합니다.
 각 컷은 씬의 시간 흐름에 따라 장면이 자연스럽게 이어져야 합니다.
@@ -161,7 +190,7 @@ ${charKeywords || '(캐릭터 없음)'}
 [씬 분석]
 핵심 시각적 순간: ${analysis.keyVisualMoment}
 감정 흐름: ${analysis.emotionFlow}
-${confirmedBlock}
+${confirmedBlock}${koreanTextGuidance}
 ${scene.isAITransformScene && scene.transform ? `[AI 변환 씬]
 변환 전: ${scene.transform.stateBefore}
 변환 후: ${scene.transform.stateAfter}
@@ -181,10 +210,10 @@ ${storyboardSection}
     "timeEnd": "종료 타임코드",
     "description": "이 컷에서 보여줄 장면 설명 (한국어, 1~2문장)",
     "prompts": {
-      "kling": "Kling 이미지 모델 최적화 (주체·배경·조명·카메라 앵글·스타일을 구체적으로 서술, 영문, 100~150단어)",
-      "midjourney": "Midjourney v6 최적화 (--ar ${project.artContext.aspectRatio.replace(':', ':')} --style raw --v 6.1 포함, 영문)",
-      "imagen": "Google Imagen 3 최적화 (자연어 서술형, 영문)",
-      "negativePrompt": "네거티브 프롬프트 (금지 요소 + 품질 관련, 영문, 쉼표 구분)"
+      "kling": "Kling 이미지 모델 최적화 (주체·배경·조명·카메라 앵글·스타일 구체적 서술, 영문 100~150단어. 한글 텍스트 포함 시: 'clean sharp Korean Hangul text', 'crisp legible characters', 'high contrast text against background' 추가)",
+      "midjourney": "Midjourney v6 최적화 (--ar ${project.artContext.aspectRatio.replace(':', ':')} --style raw --v 6.1 포함, 영문. 한글 텍스트 포함 시: 'Korean-style typography aesthetic' 등으로 간접 묘사)",
+      "imagen": "Google Imagen 3 최적화 (자연어 서술형, 영문. 한글 텍스트 포함 시: 텍스트 내용을 큰따옴표 안에 직접 명시 — 예: the sign reads '한글텍스트'. 서체·크기·색상·배치 상세 기술)",
+      "negativePrompt": "네거티브 프롬프트 (금지 요소 + 품질 관련, 영문, 쉼표 구분. 반드시 포함: garbled text, gibberish, illegible text, broken typography, blurry text, distorted letters)"
     }
   }
 ]
@@ -198,6 +227,7 @@ ${storyboardSection}
 - 금지 요소는 모든 컷의 네거티브 프롬프트에 포함
 - 컷 간 시각적 일관성 유지 (같은 장소, 같은 캐릭터 외형, 같은 조명 톤)
 - 감정 흐름에 따라 컷별로 표정/포즈/구도가 점진적으로 변화
+- 한글 텍스트가 있는 경우: 각 플랫폼별 한글 텍스트 가이드라인 필수 적용, 모든 컷의 negativePrompt에 'garbled text, illegible text' 포함
 - 반드시 JSON 배열만 반환하세요.`
 }
 

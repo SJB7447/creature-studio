@@ -4,7 +4,7 @@ import { useState, useRef, useEffect, useCallback } from 'react'
 import Link from 'next/link'
 import { DragScrollDiv } from '@/components/ui/DragScrollDiv'
 import { Scene, Project, Character, ConfirmedAsset, AgentResult, AgentStep, ValidationResult } from '@/types'
-import { updateScene, getConfirmedAssets } from '@/lib/firestore'
+import { updateScene, updateSceneAssets, getConfirmedAssets } from '@/lib/firestore'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useProjectStore } from '@/store/projectStore'
 import { useAgentStore, SingleStepType } from '@/store/agentStore'
@@ -498,6 +498,34 @@ export function SceneAIPanel({ scene, project, characters, projectId, episodeId,
     }
   }
 
+  // ─── Save only the fields changed by a single step ────
+  async function saveStepAssets(stepType: SingleStepType) {
+    const s = useAgentStore.getState()
+    const changes: Partial<Scene['assets']> = {}
+    switch (stepType) {
+      case 'script':
+        if (s.directorScript != null) changes.directorScript = s.directorScript
+        break
+      case 'imagePrompt':
+        if (s.imagePrompts) changes.imagePrompt = s.imagePrompts
+        if (s.imagePromptCuts) changes.imagePromptCuts = s.imagePromptCuts
+        break
+      case 'videoPrompt':
+        if (s.videoPrompts) changes.videoPrompt = s.videoPrompts
+        if (s.videoPromptCuts) changes.videoPromptCuts = s.videoPromptCuts
+        break
+      case 'storyboard':
+        if (s.storyboardFrames) changes.storyboardFrames = s.storyboardFrames
+        break
+    }
+    if (Object.keys(changes).length > 0) {
+      await updateSceneAssets(projectId, episodeId, sceneId, changes)
+      queryClient.invalidateQueries({ queryKey: ['scene', projectId, episodeId, sceneId] })
+      setSaveFlash(true)
+      setTimeout(() => setSaveFlash(false), 3000)
+    }
+  }
+
   // ─── Individual step run ──────────────────────────────
   async function runSingle(stepType: SingleStepType, tabId: ResultTab) {
     setShowDropdown(false)
@@ -505,10 +533,15 @@ export function SceneAIPanel({ scene, project, characters, projectId, episodeId,
     try {
       await agentStore.runSingleStep(stepType, scene, project, characters)
       setActiveTab(tabId)
-      // Auto-save after single step
-      const updated = { ...result!, ...getSingleUpdate(stepType) }
-      setResult(updated)
-      autoSave(updated)
+      const singleUpdate = getSingleUpdate(stepType)
+      setResult(prev => ({
+        analysis: emptyAnalysis(), characterContext: emptyCharCtx(),
+        directorScript: '', imagePrompts: emptyImagePrompts(), imagePromptCuts: [],
+        videoPrompts: emptyVideoPrompts(), videoPromptCuts: [], storyboardFrames: [],
+        validation: emptyValidation(), agentAnalysis: '', steps: [],
+        ...(prev || {}), ...singleUpdate,
+      }))
+      await saveStepAssets(stepType)
     } catch (e: any) {
       toast.error('생성 실패: ' + e.message)
     } finally {
@@ -532,9 +565,15 @@ export function SceneAIPanel({ scene, project, characters, projectId, episodeId,
     agentStore.setFeedback(stepType, feedback)
     try {
       await agentStore.runSingleStep(stepType, scene, project, characters)
-      const updated = { ...result!, ...getSingleUpdate(stepType) }
-      setResult(updated)
-      autoSave(updated)
+      const singleUpdate = getSingleUpdate(stepType)
+      setResult(prev => ({
+        analysis: emptyAnalysis(), characterContext: emptyCharCtx(),
+        directorScript: '', imagePrompts: emptyImagePrompts(), imagePromptCuts: [],
+        videoPrompts: emptyVideoPrompts(), videoPromptCuts: [], storyboardFrames: [],
+        validation: emptyValidation(), agentAnalysis: '', steps: [],
+        ...(prev || {}), ...singleUpdate,
+      }))
+      await saveStepAssets(stepType)
       toast.success('재생성 완료!')
     } catch (e: any) {
       toast.error('재생성 실패: ' + e.message)
