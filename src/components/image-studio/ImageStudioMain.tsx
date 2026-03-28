@@ -20,6 +20,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import {
   Wand2, Image, Loader2, Download, ZoomIn, ChevronDown, ChevronUp,
   CheckCircle, AlertCircle, Layers, User, Sparkles, RefreshCw, Info, X,
+  Camera, Maximize2,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -46,6 +47,48 @@ function buildFilename(sceneNumber: number, cutNumber: number, candidateIndex: n
   const cutStr = cutNumber === 0 ? '대표' : `컷${String(cutNumber).padStart(2, '0')}`
   const roundStr = roundNumber !== undefined ? `_이력${roundNumber}` : ''
   return `S${String(sceneNumber).padStart(2, '0')}_${cutStr}${roundStr}_후보${candidateIndex + 1}.png`
+}
+
+// ─── Camera angle ─────────────────────────────────────────
+const CAMERA_ANGLES = [
+  { id: '',          label: '기본',         prompt: '' },
+  { id: 'close-up',  label: '클로즈업',      prompt: 'extreme close-up shot,' },
+  { id: 'medium',    label: '미디엄',        prompt: 'medium shot,' },
+  { id: 'wide',      label: '와이드',        prompt: 'wide establishing shot,' },
+  { id: 'birds-eye', label: '버즈아이뷰',    prompt: "bird's eye view, overhead shot," },
+  { id: 'low',       label: '로우앵글',      prompt: 'low angle shot, looking upward,' },
+  { id: 'high',      label: '하이앵글',      prompt: 'high angle shot, looking down,' },
+  { id: 'ots',       label: '오버더숄더',    prompt: 'over-the-shoulder shot,' },
+  { id: 'pov',       label: 'POV',          prompt: 'first-person POV shot,' },
+] as const
+
+type CameraAngleId = (typeof CAMERA_ANGLES)[number]['id']
+
+function CameraAngleSelector({ value, onChange }: { value: CameraAngleId; onChange: (v: CameraAngleId) => void }) {
+  return (
+    <div>
+      <div className="flex items-center gap-1.5 mb-1.5">
+        <Camera className="w-3.5 h-3.5" style={{ color: '#7C3AED' }} />
+        <p className="text-[10px] font-semibold" style={{ color: 'var(--color-text-sub)' }}>카메라 앵글</p>
+      </div>
+      <div className="flex flex-wrap gap-1">
+        {CAMERA_ANGLES.map(a => (
+          <button
+            key={a.id}
+            onClick={() => onChange(a.id)}
+            className="px-2 py-1 rounded-md text-[10px] font-medium border transition-colors"
+            style={{
+              background: value === a.id ? '#7C3AED' : 'var(--color-surface)',
+              color: value === a.id ? 'white' : 'var(--color-text-sub)',
+              borderColor: value === a.id ? '#7C3AED' : 'var(--color-border)',
+            }}
+          >
+            {a.label}
+          </button>
+        ))}
+      </div>
+    </div>
+  )
 }
 
 // ─── Model selector ──────────────────────────────────────
@@ -414,6 +457,8 @@ function SceneImageCard({
   })
 
   const [generatingCut, setGeneratingCut] = useState<number | null>(null)
+  const [cameraAngle, setCameraAngle] = useState<CameraAngleId>('')
+  const [showPromptModal, setShowPromptModal] = useState(false)
 
   const [charSelections, setCharSelections] = useState<CharacterSelection[]>(() =>
     initCharacterSelections(scene.characters, allCharacters, scene.emotionKeywords)
@@ -446,7 +491,8 @@ function SceneImageCard({
         charSelections, allCharacters, confirmedAssets
       )
 
-      const finalPrompt = basePrompt + promptSuffix
+      const cameraPrefix = cameraAngle ? (CAMERA_ANGLES.find(a => a.id === cameraAngle)?.prompt ?? '') + ' ' : ''
+      const finalPrompt = cameraPrefix + basePrompt + promptSuffix
       const hasRef = referenceImageUrls.length > 0
       const finalModel: ImagenModelId = hasRef && model === 'imagen3' ? 'gemini-flash' : model
 
@@ -551,7 +597,8 @@ function SceneImageCard({
   const { main: activePrompt } = getActivePrompt()
   const { promptSuffix, referenceImageUrls } = buildCharacterPromptSuffix(charSelections, allCharacters, confirmedAssets)
   const hasRef = referenceImageUrls.length > 0
-  const finalPreviewPrompt = activePrompt + promptSuffix
+  const cameraPrefix = cameraAngle ? (CAMERA_ANGLES.find(a => a.id === cameraAngle)?.prompt ?? '') + ' ' : ''
+  const finalPreviewPrompt = cameraPrefix + activePrompt + promptSuffix
 
   return (
     <div
@@ -668,6 +715,9 @@ function SceneImageCard({
                     </div>
                   )}
 
+                  {/* Camera angle selector */}
+                  <CameraAngleSelector value={cameraAngle} onChange={setCameraAngle} />
+
                   {/* Model selector */}
                   <div>
                     <div className="flex items-center justify-between mb-1.5">
@@ -691,15 +741,68 @@ function SceneImageCard({
                         <p className="text-[10px] font-semibold" style={{ color: 'var(--color-text-sub)' }}>
                           최종 프롬프트 미리보기
                         </p>
-                        {promptSuffix && (
-                          <span className="text-[9px] px-1.5 py-0.5 rounded font-medium" style={{ background: '#EDE9FE', color: '#7C3AED' }}>
-                            캐릭터 정보 포함
-                          </span>
-                        )}
+                        <div className="flex items-center gap-1.5">
+                          {(cameraAngle || promptSuffix) && (
+                            <span className="text-[9px] px-1.5 py-0.5 rounded font-medium" style={{ background: '#EDE9FE', color: '#7C3AED' }}>
+                              {[cameraAngle && '앵글', promptSuffix && '캐릭터'].filter(Boolean).join('+')} 적용
+                            </span>
+                          )}
+                          <button
+                            onClick={() => setShowPromptModal(true)}
+                            className="flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[9px] border transition-colors hover:bg-[var(--color-surface-2)]"
+                            style={{ borderColor: 'var(--color-border)', color: 'var(--color-text-sub)' }}
+                          >
+                            <Maximize2 className="w-2.5 h-2.5" /> 전체보기
+                          </button>
+                        </div>
                       </div>
-                      <div className="p-2.5 rounded-lg border text-[10px] font-mono leading-relaxed line-clamp-6"
-                        style={{ background: 'var(--color-surface-2)', borderColor: 'var(--color-border)', color: 'var(--color-text-sub)', whiteSpace: 'pre-wrap' }}>
+                      <div
+                        className="p-2.5 rounded-lg border text-[10px] font-mono leading-relaxed overflow-y-auto"
+                        style={{
+                          background: 'var(--color-surface-2)',
+                          borderColor: 'var(--color-border)',
+                          color: 'var(--color-text-sub)',
+                          whiteSpace: 'pre-wrap',
+                          maxHeight: '7rem',
+                        }}
+                      >
                         {finalPreviewPrompt}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Prompt full-view modal */}
+                  {showPromptModal && (
+                    <div
+                      className="fixed inset-0 z-50 flex items-center justify-center p-4"
+                      style={{ background: 'rgba(0,0,0,0.6)' }}
+                      onClick={() => setShowPromptModal(false)}
+                    >
+                      <div
+                        className="rounded-2xl border shadow-2xl w-full max-w-2xl max-h-[80vh] flex flex-col"
+                        style={{ background: 'var(--color-surface)', borderColor: 'var(--color-border)' }}
+                        onClick={e => e.stopPropagation()}
+                      >
+                        <div className="flex items-center justify-between px-4 py-3 border-b" style={{ borderColor: 'var(--color-border)' }}>
+                          <p className="text-sm font-semibold" style={{ color: 'var(--color-text)' }}>최종 프롬프트 전체보기</p>
+                          <button onClick={() => setShowPromptModal(false)}>
+                            <X className="w-4 h-4" style={{ color: 'var(--color-text-sub)' }} />
+                          </button>
+                        </div>
+                        <div className="flex-1 overflow-y-auto p-4">
+                          <pre className="text-[11px] font-mono leading-relaxed whitespace-pre-wrap" style={{ color: 'var(--color-text)' }}>
+                            {finalPreviewPrompt}
+                          </pre>
+                        </div>
+                        <div className="px-4 py-3 border-t flex justify-end" style={{ borderColor: 'var(--color-border)' }}>
+                          <button
+                            onClick={() => { navigator.clipboard.writeText(finalPreviewPrompt); setShowPromptModal(false) }}
+                            className="px-3 py-1.5 rounded-lg text-xs font-semibold text-white"
+                            style={{ background: '#7C3AED' }}
+                          >
+                            복사하고 닫기
+                          </button>
+                        </div>
                       </div>
                     </div>
                   )}
