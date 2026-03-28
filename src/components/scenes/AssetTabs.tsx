@@ -140,7 +140,7 @@ export function AssetTabs({ scene }: { scene: Scene }) {
           ) : (
             <div>
               <h3 className="text-sm font-medium mb-4" style={{ color: 'var(--color-text)' }}>이미지 프롬프트</h3>
-              <CodeBlock label="기본 프롬프트" value={assets.imagePrompt.base} />
+              <CodeBlock label="Kling" value={assets.imagePrompt.kling} />
               <CodeBlock label="Midjourney (파라미터 포함)" value={assets.imagePrompt.midjourney} />
               <CodeBlock label="Google Imagen" value={assets.imagePrompt.imagen} />
               <CodeBlock label="네거티브 프롬프트" value={assets.imagePrompt.negativePrompt} />
@@ -153,7 +153,7 @@ export function AssetTabs({ scene }: { scene: Scene }) {
       {activeTab === 'video' && assets.videoPrompt && (
         <div>
           <h3 className="text-sm font-medium mb-4" style={{ color: 'var(--color-text)' }}>영상 프롬프트</h3>
-          <CodeBlock label="Google Veo 2" value={assets.videoPrompt.veo} />
+          <CodeBlock label="Kling" value={assets.videoPrompt.kling} />
           <CodeBlock label="OpenAI Sora" value={assets.videoPrompt.sora} />
           <CodeBlock label="Runway Gen-3" value={assets.videoPrompt.runway} />
         </div>

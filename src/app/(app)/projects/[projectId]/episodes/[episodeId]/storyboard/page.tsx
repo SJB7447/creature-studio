@@ -42,7 +42,7 @@ function getEmotionScore(keywords: string[]): number {
 
 function getAIStatus(scene: Scene): { label: string; color: string } {
   const a = scene.assets || {}
-  const has = [a.directorScript, a.imagePrompt?.base, a.videoPrompt?.veo, a.storyboardFrames?.length]
+  const has = [a.directorScript, a.imagePrompt?.kling, a.videoPrompt?.kling, a.storyboardFrames?.length]
   const count = has.filter(Boolean).length
   if (count === 4) return { label: '전체완료', color: 'bg-green-500/20 text-green-400 border-green-500/30' }
   if (count > 0) return { label: '일부완료', color: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30' }
@@ -113,7 +113,7 @@ function StatsBar({ scenes }: { scenes: Scene[] }) {
   const totalScenes = scenes.length
   const completedScenes = scenes.filter(s => {
     const a = s.assets || {}
-    return a.directorScript && a.imagePrompt?.base && a.videoPrompt?.veo && a.storyboardFrames?.length
+    return a.directorScript && a.imagePrompt?.kling && a.videoPrompt?.kling && a.storyboardFrames?.length
   }).length
   const totalRuntime = scenes.reduce((sum, s) => sum + parseRuntime(s.timeEnd) - parseRuntime(s.timeStart), 0)
   const qualityScores = scenes.map(getQualityScore).filter((s): s is number => s !== null)
@@ -194,7 +194,7 @@ h1{color:#7C3AED;margin-bottom:4px;font-size:24px}h2{color:#374151;font-size:14p
     const totalScenes = scenes.length
     const completed = scenes.filter(s => {
       const a = s.assets || {}
-      return a.directorScript && a.imagePrompt?.base && a.videoPrompt?.veo && a.storyboardFrames?.length
+      return a.directorScript && a.imagePrompt?.kling && a.videoPrompt?.kling && a.storyboardFrames?.length
     }).length
     const runtime = scenes.reduce((sum, s) => sum + parseRuntime(s.timeEnd) - parseRuntime(s.timeStart), 0)
     html += `<div class="stats">

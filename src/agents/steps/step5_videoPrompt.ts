@@ -7,7 +7,7 @@ export function buildVideoPromptPrompt(
   directorScript: string
 ): string {
   return `당신은 AI 영상 생성 프롬프트 전문가입니다.
-Google Veo 2, OpenAI Sora, Runway Gen-3 Alpha의 특성을 정확히 이해하고 있습니다.
+Kling AI, OpenAI Sora, Runway Gen-3 Alpha의 특성을 정확히 이해하고 있습니다.
 
 [작품 컨텍스트]
 작품명: ${project.title}
@@ -40,14 +40,14 @@ ${directorScript.substring(0, 800)}
 
 각 플랫폼에 최적화된 영상 프롬프트를 JSON으로 반환하세요:
 {
-  "veo": "Google Veo 2 최적화 (카메라 무브먼트 서술, 분위기/조명 묘사, 장면 전환 포함, 영문, 200단어 이내)",
+  "kling": "Kling AI 최적화 (주체/동작/배경/카메라 무브먼트를 명확히 서술, 감정 톤과 조명 분위기 포함, 영문, 200단어 이내)",
   "sora": "OpenAI Sora 최적화 (물리적 일관성 강조, 서술형 장면 묘사, 시간 흐름 포함, 영문, 200단어 이내)",
   "runway": "Runway Gen-3 Alpha 최적화 (간결, 동작/모션 중심, 스타일 키워드 포함, 영문, 150단어 이내)"
 }
 
 중요:
 - 각 플랫폼의 강점에 맞게 프롬프트를 차별화
-- Veo: 시네마틱 카메라워크 + 분위기 묘사에 강함
+- Kling: 주체·동작·배경을 구체적으로 서술, 카메라 무브먼트와 감정 톤 명시에 강함
 - Sora: 물리 시뮬레이션 + 복잡한 장면에 강함
 - Runway: 스타일 전이 + 짧은 모션에 강함
 - 반드시 JSON만 반환하세요.`
@@ -85,7 +85,7 @@ export function buildVideoPromptCutsPrompt(
   }).join('\n\n')
 
   return `당신은 AI 영상 생성 프롬프트 전문가입니다.
-Google Veo 2, OpenAI Sora, Runway Gen-3 Alpha의 특성을 정확히 이해하고 있습니다.
+Kling AI, OpenAI Sora, Runway Gen-3 Alpha의 특성을 정확히 이해하고 있습니다.
 
 [작품 컨텍스트]
 작품명: ${project.title}
@@ -129,7 +129,7 @@ JSON 배열로 반환:
     "storyboardFrame": 1,
     "description": "이 컷의 핵심 동작/장면 요약 (한국어, 1문장)",
     "prompts": {
-      "veo": "Google Veo 2 최적화 (카메라 무브먼트·조명·분위기 묘사, 영문, 100단어 이내)",
+      "kling": "Kling AI 최적화 (주체·동작·배경·카메라 무브먼트 명확히 서술, 감정 톤과 조명 분위기 포함, 영문, 100단어 이내)",
       "sora": "OpenAI Sora 최적화 (물리적 일관성·서술형 장면묘사·시간흐름, 영문, 100단어 이내)",
       "runway": "Runway Gen-3 Alpha 최적화 (간결·동작/모션 중심·스타일 키워드, 영문, 80단어 이내)"
     }
@@ -155,7 +155,7 @@ export function parseVideoPromptCuts(raw: string): VideoPromptCut[] {
       storyboardFrame: cut.storyboardFrame || i + 1,
       description: cut.description || '',
       prompts: {
-        veo: cut.prompts?.veo || '',
+        kling: cut.prompts?.kling || '',
         sora: cut.prompts?.sora || '',
         runway: cut.prompts?.runway || '',
       },
@@ -170,11 +170,11 @@ export function parseVideoPrompts(raw: string): VideoPrompts {
   try {
     const parsed = JSON.parse(cleaned)
     return {
-      veo: parsed.veo || '',
+      kling: parsed.kling || '',
       sora: parsed.sora || '',
       runway: parsed.runway || '',
     }
   } catch {
-    return { veo: raw, sora: '', runway: '' }
+    return { kling: raw, sora: '', runway: '' }
   }
 }

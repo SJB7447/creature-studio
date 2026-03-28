@@ -261,8 +261,8 @@ export function AgentPanel({ scene, project, characters, projectId, episodeId, s
               <p className="line-clamp-2" style={{ color: 'var(--color-text)' }}>{result.directorScript.substring(0, 100)}...</p>
             </div>
             <div className="p-2 rounded-lg" style={{ background: 'var(--color-surface)' }}>
-              <p className="mb-1" style={{ color: 'var(--color-text-sub)' }}>이미지 프롬프트 (기본)</p>
-              <p className="line-clamp-2" style={{ color: 'var(--color-text)' }}>{result.imagePrompts.base.substring(0, 100)}...</p>
+              <p className="mb-1" style={{ color: 'var(--color-text-sub)' }}>이미지 프롬프트 (Kling)</p>
+              <p className="line-clamp-2" style={{ color: 'var(--color-text)' }}>{result.imagePrompts.kling.substring(0, 100)}...</p>
             </div>
             <div className="p-2 rounded-lg" style={{ background: 'var(--color-surface)' }}>
               <p className="mb-1" style={{ color: 'var(--color-text-sub)' }}>스토리보드</p>

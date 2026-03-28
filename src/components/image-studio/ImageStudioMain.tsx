@@ -470,13 +470,13 @@ function SceneImageCard({
   function getActivePrompt(): { main: string; negative: string } {
     if (selectedCut === 0) {
       return {
-        main: scene.assets.imagePrompt?.imagen || scene.assets.imagePrompt?.base || '',
+        main: scene.assets.imagePrompt?.imagen || scene.assets.imagePrompt?.kling || '',
         negative: scene.assets.imagePrompt?.negativePrompt || '',
       }
     }
     const cut = scene.assets.imagePromptCuts?.find(c => c.cutNumber === selectedCut)
     return {
-      main: cut?.prompts.imagen || cut?.prompts.base || '',
+      main: cut?.prompts.imagen || cut?.prompts.kling || '',
       negative: cut?.prompts.negativePrompt || '',
     }
   }

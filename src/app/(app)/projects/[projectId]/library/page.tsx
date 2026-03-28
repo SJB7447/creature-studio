@@ -123,8 +123,8 @@ export default function LibraryPage() {
       if (scene.assets?.imagePrompt?.imagen) {
         built.push({ ...base, id: `${scene.id}-imagen`, type: 'image', platform: 'Imagen', label: 'Imagen', content: scene.assets.imagePrompt.imagen })
       }
-      if (scene.assets?.videoPrompt?.veo) {
-        built.push({ ...base, id: `${scene.id}-veo`, type: 'video', platform: 'Veo2', label: 'Veo 2', content: scene.assets.videoPrompt.veo })
+      if (scene.assets?.videoPrompt?.kling) {
+        built.push({ ...base, id: `${scene.id}-kling`, type: 'video', platform: 'Kling', label: 'Kling', content: scene.assets.videoPrompt.kling })
       }
       if (scene.assets?.videoPrompt?.sora) {
         built.push({ ...base, id: `${scene.id}-sora`, type: 'video', platform: 'Sora', label: 'Sora', content: scene.assets.videoPrompt.sora })

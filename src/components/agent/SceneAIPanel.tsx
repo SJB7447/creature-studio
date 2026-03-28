@@ -29,8 +29,8 @@ interface Props {
 }
 
 type ResultTab = 'script' | 'image' | 'video' | 'storyboard'
-type ImagePlatform = 'base' | 'midjourney' | 'imagen'
-type VideoPlatform = 'veo' | 'sora' | 'runway'
+type ImagePlatform = 'kling' | 'midjourney' | 'imagen'
+type VideoPlatform = 'kling' | 'sora' | 'runway'
 
 // ─── Quality Score Badge ────────────────────────────────
 function QualityBadge({ score, grade }: { score: number; grade: string }) {
@@ -180,13 +180,13 @@ const INDIVIDUAL_ACTIONS: { id: SingleStepType; label: string; tabId: ResultTab 
 ]
 
 const IMAGE_PLATFORMS: { id: ImagePlatform; label: string }[] = [
-  { id: 'base', label: 'Base' },
+  { id: 'kling', label: 'Kling' },
   { id: 'midjourney', label: 'Midjourney v6' },
   { id: 'imagen', label: 'Imagen 3' },
 ]
 
 const VIDEO_PLATFORMS: { id: VideoPlatform; label: string; desc: string }[] = [
-  { id: 'veo', label: 'Veo 2', desc: '15초 클립 기준, 시네마틱 카메라 지시 중심' },
+  { id: 'kling', label: 'Kling', desc: '주체·동작·배경·카메라 무브먼트 중심 서술' },
   { id: 'sora', label: 'Sora', desc: '물리적 일관성 강조, 서술형 장면 묘사' },
   { id: 'runway', label: 'Runway Gen-3', desc: '짧은 모션 중심, 스타일 키워드 기반' },
 ]
@@ -383,7 +383,7 @@ export function SceneAIPanel({ scene, project, characters, projectId, episodeId,
   const [activeTab, setActiveTab] = useState<ResultTab>('script')
   const [imagePlatform, setImagePlatform] = useState<ImagePlatform>('midjourney')
   const [selectedCut, setSelectedCut] = useState<number>(0) // 0 = 대표, 1~N = 컷별
-  const [videoPlatform, setVideoPlatform] = useState<VideoPlatform>('veo')
+  const [videoPlatform, setVideoPlatform] = useState<VideoPlatform>('kling')
   const [selectedVideoCut, setSelectedVideoCut] = useState<number>(0) // 0 = 대표, 1~N = 컷별
   const [transformView, setTransformView] = useState<'after' | 'before'>('after')
   const [showSteps, setShowSteps] = useState(true)
@@ -849,7 +849,7 @@ export function SceneAIPanel({ scene, project, characters, projectId, episodeId,
                     : result.imagePromptCuts?.find(c => c.cutNumber === selectedCut)?.prompts || result.imagePrompts
                   return (
                     <>
-                      {imagePlatform === 'base' && <PromptDisplay value={prompts.base} />}
+                      {imagePlatform === 'kling' && <PromptDisplay value={prompts.kling} />}
                       {imagePlatform === 'midjourney' && <PromptDisplay value={prompts.midjourney} desc="--ar, --style, --v 파라미터 포함 Midjourney v6 최적화" />}
                       {imagePlatform === 'imagen' && <PromptDisplay value={prompts.imagen} desc="자연어 서술형 Google Imagen 3 최적화" />}
 
@@ -974,7 +974,7 @@ export function SceneAIPanel({ scene, project, characters, projectId, episodeId,
                     : result.videoPromptCuts?.find(c => c.cutNumber === selectedVideoCut)?.prompts || result.videoPrompts
                   return (
                     <>
-                      {videoPlatform === 'veo' && <PromptDisplay value={prompts.veo} />}
+                      {videoPlatform === 'kling' && <PromptDisplay value={prompts.kling} />}
                       {videoPlatform === 'sora' && <PromptDisplay value={prompts.sora} />}
                       {videoPlatform === 'runway' && <PromptDisplay value={prompts.runway} />}
                     </>
@@ -1100,8 +1100,8 @@ export function SceneAIPanel({ scene, project, characters, projectId, episodeId,
 
 function emptyAnalysis() { return { emotionFlow: '', narrativePosition: '', keyVisualMoment: '', technicalRequirements: '', childSafetyNotes: '', raw: '' } }
 function emptyCharCtx() { return { characterCount: 0, context: '', characters: [] } }
-function emptyImagePrompts() { return { base: '', midjourney: '', imagen: '', negativePrompt: '' } }
-function emptyVideoPrompts() { return { veo: '', sora: '', runway: '' } }
+function emptyImagePrompts() { return { kling: '', midjourney: '', imagen: '', negativePrompt: '' } }
+function emptyVideoPrompts() { return { kling: '', sora: '', runway: '' } }
 function emptyValidation(): ValidationResult { return { styleCompliance: '', prohibitedCheck: '', keyElementReflection: '', recommendations: '', qualityGrade: 'B', raw: '' } }
 
 function buildResultFromAssets(scene: Scene): AgentResult {

@@ -33,13 +33,13 @@ ${scene.isAITransformScene ? `AI 변환 씬: ${scene.transform?.triggerMoment} �
 ${result.directorScript.substring(0, 500)}
 
 2. 이미지 프롬프트:
-- Base: ${result.imagePrompts.base}
+- Kling: ${result.imagePrompts.kling}
 - Midjourney: ${result.imagePrompts.midjourney}
 - Imagen: ${result.imagePrompts.imagen}
 - Negative: ${result.imagePrompts.negativePrompt}
 
 3. 영상 프롬프트:
-- Veo: ${result.videoPrompts.veo}
+- Kling: ${result.videoPrompts.kling}
 - Sora: ${result.videoPrompts.sora}
 - Runway: ${result.videoPrompts.runway}
 

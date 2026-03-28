@@ -116,7 +116,7 @@ export default function ExportPage() {
       for (const scene of scenes) {
         if (!scene.assets?.imagePrompt) continue
         md += `## EP.${scene.episodeNumber} S${scene.number}: ${scene.title}\n\n`
-        md += `### Base\n\`\`\`\n${scene.assets.imagePrompt.base}\n\`\`\`\n\n`
+        md += `### Kling\n\`\`\`\n${scene.assets.imagePrompt.kling}\n\`\`\`\n\n`
         md += `### Midjourney\n\`\`\`\n${scene.assets.imagePrompt.midjourney}\n\`\`\`\n\n`
         md += `### Imagen\n\`\`\`\n${scene.assets.imagePrompt.imagen}\n\`\`\`\n\n`
         md += `### Negative\n\`\`\`\n${scene.assets.imagePrompt.negativePrompt}\n\`\`\`\n\n---\n\n`
@@ -136,8 +136,8 @@ export default function ExportPage() {
     try {
       const scenes = await getAllScenes()
       setProgress(50)
-      const platforms = ['veo', 'sora', 'runway'] as const
-      const labels = { veo: 'Google Veo 2', sora: 'OpenAI Sora', runway: 'Runway Gen-3' }
+      const platforms = ['kling', 'sora', 'runway'] as const
+      const labels = { kling: 'Kling', sora: 'OpenAI Sora', runway: 'Runway Gen-3' }
 
       for (const platform of platforms) {
         let txt = `${project?.title} — ${labels[platform]} Prompts\n${'='.repeat(50)}\n\n`
@@ -301,7 +301,7 @@ h1{color:#7C3AED;margin-bottom:4px;font-size:24px}.sub{color:#6B7280;font-size:1
         for (const scene of scenes) {
           if (!scene.assets?.videoPrompt) continue
           md += `### EP.${scene.episodeNumber} S${scene.number}: ${scene.title}\n\n`
-          if (scene.assets.videoPrompt.veo) md += `**Veo 2:**\n\`\`\`\n${scene.assets.videoPrompt.veo}\n\`\`\`\n\n`
+          if (scene.assets.videoPrompt.kling) md += `**Kling:**\n\`\`\`\n${scene.assets.videoPrompt.kling}\n\`\`\`\n\n`
           if (scene.assets.videoPrompt.sora) md += `**Sora:**\n\`\`\`\n${scene.assets.videoPrompt.sora}\n\`\`\`\n\n`
           if (scene.assets.videoPrompt.runway) md += `**Runway:**\n\`\`\`\n${scene.assets.videoPrompt.runway}\n\`\`\`\n\n`
         }

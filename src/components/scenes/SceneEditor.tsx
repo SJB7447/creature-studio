@@ -93,6 +93,11 @@ export function SceneEditor({ scene, project, characters, projectId, episodeId, 
   const queryClient = useQueryClient()
   const { user } = useAuthStore()
 
+  // Sync assets when scene prop updates (e.g. after AI panel saves to Firebase)
+  useEffect(() => {
+    setCurrentScene(prev => ({ ...prev, assets: scene.assets }))
+  }, [scene.assets])
+
   // Auto-save with 2s debounce
   const autoSave = useCallback((updated: Scene) => {
     setCurrentScene(updated)

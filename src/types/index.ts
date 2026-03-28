@@ -118,7 +118,7 @@ export interface StoryboardFrame {
 }
 
 export interface ImagePrompts {
-  base: string
+  kling: string
   midjourney: string
   imagen: string
   negativePrompt: string
@@ -134,7 +134,7 @@ export interface ImagePromptCut {
 }
 
 export interface VideoPrompts {
-  veo: string
+  kling: string
   sora: string
   runway: string
 }
