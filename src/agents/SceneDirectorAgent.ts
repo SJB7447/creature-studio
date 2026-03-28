@@ -66,9 +66,9 @@ export class SceneDirectorAgent {
     let characterContext: CharacterContext = { characterCount: 0, context: '', characters: [] }
     let directorScript = ''
     let storyboardFrames: StoryboardFrame[] = []
-    let imagePrompts: ImagePrompts = { base: '', midjourney: '', imagen: '', negativePrompt: '' }
+    let imagePrompts: ImagePrompts = { kling: '', midjourney: '', imagen: '', negativePrompt: '' }
     let imagePromptCuts: ImagePromptCut[] = []
-    let videoPrompts: VideoPrompts = { veo: '', sora: '', runway: '' }
+    let videoPrompts: VideoPrompts = { kling: '', sora: '', runway: '' }
     let videoPromptCuts: VideoPromptCut[] = []
     const cutCount = calculateCutCount(scene)
     let validation: ValidationResult = { styleCompliance: '', prohibitedCheck: '', keyElementReflection: '', recommendations: '', qualityGrade: 'B', raw: '' }
