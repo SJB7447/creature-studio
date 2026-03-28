@@ -23,6 +23,31 @@ import {
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
+// ─── Download helper ──────────────────────────────────────
+async function downloadImage(url: string, filename: string) {
+  try {
+    const res = await fetch(url)
+    const blob = await res.blob()
+    const blobUrl = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = blobUrl
+    a.download = filename
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    URL.revokeObjectURL(blobUrl)
+  } catch {
+    // fallback: open in new tab
+    window.open(url, '_blank')
+  }
+}
+
+function buildFilename(sceneNumber: number, cutNumber: number, candidateIndex: number, roundNumber?: number): string {
+  const cutStr = cutNumber === 0 ? '대표' : `컷${String(cutNumber).padStart(2, '0')}`
+  const roundStr = roundNumber !== undefined ? `_이력${roundNumber}` : ''
+  return `S${String(sceneNumber).padStart(2, '0')}_${cutStr}${roundStr}_후보${candidateIndex + 1}.png`
+}
+
 // ─── Model selector ──────────────────────────────────────
 function ModelSelector({
   value, onChange, hasReferenceImages,
@@ -111,9 +136,13 @@ function CutSelector({
 // ─── Candidate grid (2×2 selection) ──────────────────────
 function CandidateGrid({
   image,
+  sceneNumber,
+  cutNumber,
   onSelect,
 }: {
   image: GeneratedImage
+  sceneNumber: number
+  cutNumber: number
   onSelect: (index: number) => void
 }) {
   const [lightboxIdx, setLightboxIdx] = useState<number | null>(null)
@@ -132,6 +161,15 @@ function CandidateGrid({
             · {IMAGEN_MODELS[image.model as ImagenModelId]?.label ?? image.model}
           </span>
         </div>
+        {/* Download selected */}
+        <button
+          onClick={() => downloadImage(image.url, buildFilename(sceneNumber, cutNumber, image.selectedIndex ?? 0))}
+          className="flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-medium border transition-colors hover:bg-[var(--color-surface-2)]"
+          style={{ borderColor: 'var(--color-border)', color: 'var(--color-text-sub)' }}
+          title="선택된 이미지 다운로드"
+        >
+          <Download className="w-3 h-3" /> 저장
+        </button>
       </div>
 
       {/* 2×2 grid */}
@@ -160,14 +198,24 @@ function CandidateGrid({
                 선택됨
               </div>
             )}
-            {/* zoom button */}
-            <button
-              onClick={() => setLightboxIdx(idx)}
-              className="absolute top-1 right-1 w-6 h-6 rounded-md flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
-              style={{ background: 'rgba(0,0,0,0.55)' }}
-            >
-              <ZoomIn className="w-3.5 h-3.5 text-white" />
-            </button>
+            {/* action buttons (hover) */}
+            <div className="absolute top-1 right-1 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+              <button
+                onClick={() => downloadImage(url, buildFilename(sceneNumber, cutNumber, idx))}
+                className="w-6 h-6 rounded-md flex items-center justify-center"
+                style={{ background: 'rgba(0,0,0,0.55)' }}
+                title={`후보 ${idx + 1} 다운로드`}
+              >
+                <Download className="w-3 h-3 text-white" />
+              </button>
+              <button
+                onClick={() => setLightboxIdx(idx)}
+                className="w-6 h-6 rounded-md flex items-center justify-center"
+                style={{ background: 'rgba(0,0,0,0.55)' }}
+              >
+                <ZoomIn className="w-3.5 h-3.5 text-white" />
+              </button>
+            </div>
             {/* index badge */}
             <div className="absolute bottom-1 right-1 px-1.5 py-0.5 rounded-md text-[9px] font-bold text-white pointer-events-none"
               style={{ background: 'rgba(0,0,0,0.55)' }}>
@@ -178,7 +226,7 @@ function CandidateGrid({
       </div>
 
       <p className="text-[10px] mt-1.5 text-center" style={{ color: 'var(--color-text-sub)' }}>
-        이미지를 클릭하여 최종 선택
+        클릭하여 선택 · 호버 후 아이콘으로 다운로드/확대
       </p>
 
       {/* lightbox */}
@@ -188,11 +236,11 @@ function CandidateGrid({
           style={{ background: 'rgba(0,0,0,0.88)' }}
           onClick={() => setLightboxIdx(null)}
         >
-          <div className="relative max-w-5xl" onClick={e => e.stopPropagation()}>
+          <div className="relative max-w-5xl w-full" onClick={e => e.stopPropagation()}>
             <img
               src={candidates[lightboxIdx]}
               alt="크게보기"
-              className="max-w-full max-h-[90vh] rounded-xl object-contain"
+              className="max-w-full max-h-[80vh] rounded-xl object-contain mx-auto block"
             />
             <button
               onClick={() => setLightboxIdx(null)}
@@ -201,15 +249,25 @@ function CandidateGrid({
             >
               <X className="w-5 h-5 text-white" />
             </button>
-            <div className="mt-2 flex justify-center">
+            <div className="mt-3 flex justify-center gap-2">
               <button
-                onClick={() => onSelect(lightboxIdx)}
+                onClick={() => { onSelect(lightboxIdx); setLightboxIdx(null) }}
                 className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-white text-sm font-semibold"
                 style={{ background: '#7C3AED' }}
               >
                 <CheckCircle className="w-4 h-4" /> 이 이미지 선택
               </button>
+              <button
+                onClick={() => downloadImage(candidates[lightboxIdx], buildFilename(sceneNumber, cutNumber, lightboxIdx))}
+                className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-semibold border"
+                style={{ background: 'white', color: '#374151', borderColor: '#D1D5DB' }}
+              >
+                <Download className="w-4 h-4" /> 다운로드
+              </button>
             </div>
+            <p className="text-center text-[10px] mt-1.5 text-gray-400">
+              {buildFilename(sceneNumber, cutNumber, lightboxIdx)}
+            </p>
           </div>
         </div>
       )}
@@ -218,9 +276,18 @@ function CandidateGrid({
 }
 
 // ─── History round thumbnails ─────────────────────────────
-function HistorySection({ history }: { history: GeneratedImage['history'] }) {
+function HistorySection({
+  history, sceneNumber, cutNumber,
+}: {
+  history: GeneratedImage['history']
+  sceneNumber: number
+  cutNumber: number
+}) {
   const [open, setOpen] = useState(false)
+  const [lightbox, setLightbox] = useState<{ url: string; filename: string } | null>(null)
+
   if (!history || history.length === 0) return null
+
   return (
     <div className="mt-3">
       <button
@@ -231,32 +298,90 @@ function HistorySection({ history }: { history: GeneratedImage['history'] }) {
         {open ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
         이전 생성 기록 {history.length}회
       </button>
+
       {open && (
-        <div className="mt-2 space-y-2">
-          {history.map((round, ri) => (
-            <div key={ri} className="p-2 rounded-lg border" style={{ borderColor: 'var(--color-border)', background: 'var(--color-surface-2)' }}>
-              <p className="text-[9px] mb-1.5 font-semibold" style={{ color: 'var(--color-text-sub)' }}>
-                라운드 {history.length - ri} · {round.model} · {new Date(round.createdAt).toLocaleString('ko')}
-              </p>
-              <div className="flex gap-1.5 flex-wrap">
-                {round.candidates.map((url, ci) => (
-                  <div key={ci} className="relative rounded overflow-hidden border-2"
-                    style={{
-                      borderColor: round.selectedIndex === ci ? '#7C3AED' : 'transparent',
-                      width: 52, height: 36,
-                    }}>
-                    <img src={url} alt="" className="w-full h-full object-cover" />
-                    {round.selectedIndex === ci && (
-                      <div className="absolute inset-0 flex items-center justify-center"
-                        style={{ background: 'rgba(124,58,237,0.25)' }}>
-                        <CheckCircle className="w-3 h-3 text-white" />
+        <div className="mt-2 space-y-3">
+          {[...history].reverse().map((round, ri) => {
+            const roundNumber = history.length - ri
+            return (
+              <div key={ri} className="p-2.5 rounded-xl border" style={{ borderColor: 'var(--color-border)', background: 'var(--color-surface-2)' }}>
+                <p className="text-[9px] mb-2 font-semibold" style={{ color: 'var(--color-text-sub)' }}>
+                  라운드 {roundNumber} · {round.model} · {new Date(round.createdAt).toLocaleString('ko')}
+                </p>
+                <div className="grid grid-cols-4 gap-1">
+                  {round.candidates.map((url, ci) => (
+                    <div key={ci} className="relative group rounded-lg overflow-hidden border-2"
+                      style={{ borderColor: round.selectedIndex === ci ? '#7C3AED' : 'transparent', aspectRatio: '16/9' }}>
+                      <img src={url} alt="" className="w-full h-full object-cover" />
+                      {round.selectedIndex === ci && (
+                        <div className="absolute top-0.5 left-0.5 w-4 h-4 rounded flex items-center justify-center pointer-events-none"
+                          style={{ background: 'rgba(124,58,237,0.8)' }}>
+                          <CheckCircle className="w-2.5 h-2.5 text-white" />
+                        </div>
+                      )}
+                      {/* action buttons on hover */}
+                      <div className="absolute inset-0 flex items-center justify-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                        style={{ background: 'rgba(0,0,0,0.45)' }}>
+                        <button
+                          onClick={() => setLightbox({ url, filename: buildFilename(sceneNumber, cutNumber, ci, roundNumber) })}
+                          className="w-6 h-6 rounded-md flex items-center justify-center"
+                          style={{ background: 'rgba(0,0,0,0.6)' }}
+                        >
+                          <ZoomIn className="w-3 h-3 text-white" />
+                        </button>
+                        <button
+                          onClick={() => downloadImage(url, buildFilename(sceneNumber, cutNumber, ci, roundNumber))}
+                          className="w-6 h-6 rounded-md flex items-center justify-center"
+                          style={{ background: 'rgba(0,0,0,0.6)' }}
+                        >
+                          <Download className="w-3 h-3 text-white" />
+                        </button>
                       </div>
-                    )}
-                  </div>
-                ))}
+                      {/* index badge */}
+                      <div className="absolute bottom-0.5 right-0.5 px-1 rounded text-[8px] font-bold text-white pointer-events-none"
+                        style={{ background: 'rgba(0,0,0,0.55)' }}>
+                        {ci + 1}
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </div>
+            )
+          })}
+        </div>
+      )}
+
+      {/* History lightbox */}
+      {lightbox && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          style={{ background: 'rgba(0,0,0,0.88)' }}
+          onClick={() => setLightbox(null)}
+        >
+          <div className="relative max-w-5xl w-full" onClick={e => e.stopPropagation()}>
+            <img
+              src={lightbox.url}
+              alt="크게보기"
+              className="max-w-full max-h-[80vh] rounded-xl object-contain mx-auto block"
+            />
+            <button
+              onClick={() => setLightbox(null)}
+              className="absolute top-2 right-2 w-8 h-8 rounded-full flex items-center justify-center"
+              style={{ background: 'rgba(0,0,0,0.6)' }}
+            >
+              <X className="w-5 h-5 text-white" />
+            </button>
+            <div className="mt-3 flex justify-center">
+              <button
+                onClick={() => downloadImage(lightbox.url, lightbox.filename)}
+                className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-semibold border"
+                style={{ background: 'white', color: '#374151', borderColor: '#D1D5DB' }}
+              >
+                <Download className="w-4 h-4" /> 다운로드
+              </button>
             </div>
-          ))}
+            <p className="text-center text-[10px] mt-1.5 text-gray-400">{lightbox.filename}</p>
+          </div>
         </div>
       )}
     </div>
@@ -606,9 +731,15 @@ function SceneImageCard({
                     <>
                       <CandidateGrid
                         image={activeGenerated}
+                        sceneNumber={scene.number}
+                        cutNumber={selectedCut}
                         onSelect={(idx) => handleSelectCandidate(selectedCut, idx)}
                       />
-                      <HistorySection history={activeGenerated.history} />
+                      <HistorySection
+                        history={activeGenerated.history}
+                        sceneNumber={scene.number}
+                        cutNumber={selectedCut}
+                      />
                     </>
                   ) : (
                     <div className="h-full min-h-40 flex flex-col items-center justify-center rounded-xl border-2 border-dashed"
