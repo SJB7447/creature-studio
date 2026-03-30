@@ -28,21 +28,13 @@ import { cn } from '@/lib/utils'
 
 // ─── Download helper ──────────────────────────────────────
 async function downloadImage(url: string, filename: string) {
-  try {
-    const res = await fetch(url)
-    const blob = await res.blob()
-    const blobUrl = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = blobUrl
-    a.download = filename
-    document.body.appendChild(a)
-    a.click()
-    document.body.removeChild(a)
-    URL.revokeObjectURL(blobUrl)
-  } catch {
-    // fallback: open in new tab
-    window.open(url, '_blank')
-  }
+  const proxyUrl = `/api/download-image?url=${encodeURIComponent(url)}&filename=${encodeURIComponent(filename)}`
+  const a = document.createElement('a')
+  a.href = proxyUrl
+  a.download = filename
+  document.body.appendChild(a)
+  a.click()
+  document.body.removeChild(a)
 }
 
 function buildFilename(sceneNumber: number, cutNumber: number, candidateIndex: number, roundNumber?: number): string {
