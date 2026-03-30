@@ -14,6 +14,8 @@ import { IMAGEN_MODELS, ImagenModelId } from '@/lib/imagen'
 import {
   CharacterController, CharacterSelection,
   buildCharacterPromptSuffix, initCharacterSelections,
+  ConfirmedAssetController, ConfirmedAssetSelection,
+  buildConfirmedAssetPromptSuffix, initConfirmedAssetSelections,
 } from './CharacterController'
 import { toast } from 'sonner'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -464,6 +466,10 @@ function SceneImageCard({
     initCharacterSelections(scene.characters, allCharacters, scene.emotionKeywords)
   )
 
+  const [assetSelections, setAssetSelections] = useState<ConfirmedAssetSelection[]>(() =>
+    initConfirmedAssetSelections(confirmedAssets)
+  )
+
   const hasPrompts = !!(scene.assets.imagePrompt || (scene.assets.imagePromptCuts?.length ?? 0) > 0)
 
   // 현재 선택된 컷의 프롬프트 가져오기
@@ -490,9 +496,10 @@ function SceneImageCard({
       const { promptSuffix, referenceImageUrls } = buildCharacterPromptSuffix(
         charSelections, allCharacters, confirmedAssets
       )
+      const assetSuffix = buildConfirmedAssetPromptSuffix(assetSelections, confirmedAssets)
 
       const cameraPrefix = cameraAngle ? (CAMERA_ANGLES.find(a => a.id === cameraAngle)?.prompt ?? '') + ' ' : ''
-      const finalPrompt = cameraPrefix + basePrompt + promptSuffix
+      const finalPrompt = cameraPrefix + basePrompt + promptSuffix + assetSuffix
       const hasRef = referenceImageUrls.length > 0
       const finalModel: ImagenModelId = hasRef && model === 'imagen3' ? 'gemini-flash' : model
 
@@ -596,9 +603,10 @@ function SceneImageCard({
 
   const { main: activePrompt } = getActivePrompt()
   const { promptSuffix, referenceImageUrls } = buildCharacterPromptSuffix(charSelections, allCharacters, confirmedAssets)
+  const assetSuffix = buildConfirmedAssetPromptSuffix(assetSelections, confirmedAssets)
   const hasRef = referenceImageUrls.length > 0
   const cameraPrefix = cameraAngle ? (CAMERA_ANGLES.find(a => a.id === cameraAngle)?.prompt ?? '') + ' ' : ''
-  const finalPreviewPrompt = cameraPrefix + activePrompt + promptSuffix
+  const finalPreviewPrompt = cameraPrefix + activePrompt + promptSuffix + assetSuffix
 
   return (
     <div
@@ -715,6 +723,21 @@ function SceneImageCard({
                     </div>
                   )}
 
+                  {/* Confirmed assets controller (background, prop, effect) */}
+                  {confirmedAssets.some(a => a.category === 'background' || a.category === 'prop' || a.category === 'effect') && (
+                    <div>
+                      <div className="flex items-center gap-1.5 mb-2">
+                        <Layers className="w-3.5 h-3.5" style={{ color: '#7C3AED' }} />
+                        <p className="text-xs font-semibold" style={{ color: 'var(--color-text)' }}>확정 에셋 컨트롤</p>
+                      </div>
+                      <ConfirmedAssetController
+                        confirmedAssets={confirmedAssets}
+                        selections={assetSelections}
+                        onChange={setAssetSelections}
+                      />
+                    </div>
+                  )}
+
                   {/* Camera angle selector */}
                   <CameraAngleSelector value={cameraAngle} onChange={setCameraAngle} />
 
@@ -742,9 +765,9 @@ function SceneImageCard({
                           최종 프롬프트 미리보기
                         </p>
                         <div className="flex items-center gap-1.5">
-                          {(cameraAngle || promptSuffix) && (
+                          {(cameraAngle || promptSuffix || assetSuffix) && (
                             <span className="text-[9px] px-1.5 py-0.5 rounded font-medium" style={{ background: '#EDE9FE', color: '#7C3AED' }}>
-                              {[cameraAngle && '앵글', promptSuffix && '캐릭터'].filter(Boolean).join('+')} 적용
+                              {[cameraAngle && '앵글', promptSuffix && '캐릭터', assetSuffix && '에셋'].filter(Boolean).join('+')} 적용
                             </span>
                           )}
                           <button

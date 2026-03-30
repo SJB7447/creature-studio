@@ -1,8 +1,8 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, ReactNode } from 'react'
 import { Character, ConfirmedAsset } from '@/types'
-import { ChevronDown, User, CheckCircle, Plus, X, ImageIcon, Edit2, Pencil } from 'lucide-react'
+import { ChevronDown, User, CheckCircle, Plus, X, ImageIcon, Pencil, Image, Paintbrush, Sparkles } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 // ─── Types ────────────────────────────────────────────────
@@ -598,4 +598,169 @@ export function initCharacterSelections(
       emotionVariant: matchedVariant?.emotion ?? '',
     }
   })
+}
+
+// ─── ConfirmedAssetSelection ──────────────────────────────
+
+export interface ConfirmedAssetSelection {
+  assetId: string
+  included: boolean
+}
+
+// ─── Category config for non-character assets ─────────────
+
+const ASSET_CATEGORY_CONFIG: Record<string, { label: string; icon: ReactNode; color: string; bg: string; promptLabel: string }> = {
+  background: {
+    label: '배경',
+    icon: <Image className="w-3.5 h-3.5" />,
+    color: '#0369A1',
+    bg: '#E0F2FE',
+    promptLabel: 'Background',
+  },
+  prop: {
+    label: '소품/오브젝트',
+    icon: <Paintbrush className="w-3.5 h-3.5" />,
+    color: '#EA580C',
+    bg: '#FFF7ED',
+    promptLabel: 'Props',
+  },
+  effect: {
+    label: '이펙트',
+    icon: <Sparkles className="w-3.5 h-3.5" />,
+    color: '#059669',
+    bg: '#ECFDF5',
+    promptLabel: 'Effects',
+  },
+}
+
+// ─── ConfirmedAssetController ─────────────────────────────
+
+interface AssetControllerProps {
+  confirmedAssets: ConfirmedAsset[]
+  selections: ConfirmedAssetSelection[]
+  onChange: (selections: ConfirmedAssetSelection[]) => void
+}
+
+export function ConfirmedAssetController({ confirmedAssets, selections, onChange }: AssetControllerProps) {
+  const visibleAssets = confirmedAssets.filter(a =>
+    a.category === 'background' || a.category === 'prop' || a.category === 'effect'
+  )
+
+  if (visibleAssets.length === 0) return null
+
+  function toggle(assetId: string) {
+    const exists = selections.find(s => s.assetId === assetId)
+    if (exists) {
+      onChange(selections.map(s => s.assetId === assetId ? { ...s, included: !s.included } : s))
+    } else {
+      onChange([...selections, { assetId, included: true }])
+    }
+  }
+
+  const grouped = (['background', 'prop', 'effect'] as const).map(cat => ({
+    cat,
+    assets: visibleAssets.filter(a => a.category === cat),
+  })).filter(g => g.assets.length > 0)
+
+  return (
+    <div className="space-y-2.5">
+      {grouped.map(({ cat, assets }) => {
+        const cfg = ASSET_CATEGORY_CONFIG[cat]
+        return (
+          <div key={cat}>
+            <div className="flex items-center gap-1.5 mb-1.5">
+              <span style={{ color: cfg.color }}>{cfg.icon}</span>
+              <p className="text-[10px] font-semibold" style={{ color: 'var(--color-text-sub)' }}>{cfg.label}</p>
+            </div>
+            <div className="space-y-1">
+              {assets.map(asset => {
+                const sel = selections.find(s => s.assetId === asset.id)
+                const included = sel?.included ?? false
+                const thumb = asset.thumbnailUrl || (asset.fileType?.startsWith('image') ? asset.fileUrl : null)
+                return (
+                  <div
+                    key={asset.id}
+                    className="flex items-center gap-2.5 px-3 py-2 rounded-xl border transition-opacity cursor-pointer"
+                    style={{
+                      borderColor: included ? cfg.color : 'var(--color-border)',
+                      background: included ? cfg.bg : 'var(--color-surface-2)',
+                      opacity: included ? 1 : 0.55,
+                    }}
+                    onClick={() => toggle(asset.id)}
+                  >
+                    {/* Toggle */}
+                    <div
+                      className="shrink-0 w-5 h-5 rounded-md border-2 flex items-center justify-center transition-colors"
+                      style={{
+                        background: included ? cfg.color : 'transparent',
+                        borderColor: included ? cfg.color : 'var(--color-border)',
+                      }}
+                    >
+                      {included && <CheckCircle className="w-3 h-3 text-white" />}
+                    </div>
+
+                    {/* Thumbnail */}
+                    <div
+                      className="w-8 h-8 rounded-lg overflow-hidden border shrink-0 flex items-center justify-center"
+                      style={{ borderColor: cfg.color, background: cfg.bg }}
+                    >
+                      {thumb
+                        ? <img src={thumb} alt={asset.name} className="w-full h-full object-cover" />
+                        : <span style={{ color: cfg.color }}>{cfg.icon}</span>}
+                    </div>
+
+                    {/* Info */}
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-semibold truncate" style={{ color: 'var(--color-text)' }}>{asset.name}</p>
+                      {asset.description && (
+                        <p className="text-[10px] truncate" style={{ color: 'var(--color-text-sub)' }}>{asset.description}</p>
+                      )}
+                    </div>
+
+                    {/* 확정 badge */}
+                    <span className="text-[9px] px-1 py-0.5 rounded font-medium shrink-0" style={{ background: '#D1FAE5', color: '#065F46' }}>
+                      확정
+                    </span>
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+        )
+      })}
+    </div>
+  )
+}
+
+// ─── buildConfirmedAssetPromptSuffix ──────────────────────
+
+export function buildConfirmedAssetPromptSuffix(
+  selections: ConfirmedAssetSelection[],
+  confirmedAssets: ConfirmedAsset[]
+): string {
+  const included = selections.filter(s => s.included)
+  if (included.length === 0) return ''
+
+  const byCategory: Record<string, string[]> = {}
+  for (const sel of included) {
+    const asset = confirmedAssets.find(a => a.id === sel.assetId)
+    if (!asset) continue
+    const cfg = ASSET_CATEGORY_CONFIG[asset.category]
+    if (!cfg) continue
+    const label = cfg.promptLabel
+    const desc = asset.prompt || asset.description || asset.name
+    if (!byCategory[label]) byCategory[label] = []
+    byCategory[label].push(desc)
+  }
+
+  const parts = Object.entries(byCategory).map(([label, descs]) => `${label}: ${descs.join(', ')}`)
+  return parts.length > 0 ? `\n\n[Scene assets: ${parts.join(' | ')}]` : ''
+}
+
+// ─── initConfirmedAssetSelections ─────────────────────────
+
+export function initConfirmedAssetSelections(confirmedAssets: ConfirmedAsset[]): ConfirmedAssetSelection[] {
+  return confirmedAssets
+    .filter(a => a.category === 'background' || a.category === 'prop' || a.category === 'effect')
+    .map(a => ({ assetId: a.id, included: true }))
 }
