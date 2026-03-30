@@ -415,16 +415,15 @@ export function SceneAIPanel({ scene, project, characters, projectId, episodeId,
   // ─── Auto-save to Firebase on generation complete ─────
   const autoSave = useCallback(async (r: AgentResult) => {
     try {
-      await updateScene(projectId, episodeId, sceneId, {
-        assets: {
-          directorScript: r.directorScript,
-          imagePrompt: r.imagePrompts,
-          imagePromptCuts: r.imagePromptCuts || [],
-          videoPrompt: r.videoPrompts,
-          videoPromptCuts: r.videoPromptCuts || [],
-          storyboardFrames: r.storyboardFrames,
-          agentAnalysis: r.agentAnalysis,
-        },
+      await updateSceneAssets(projectId, episodeId, sceneId, {
+        directorScript: r.directorScript,
+        imagePrompt: r.imagePrompts,
+        imagePromptCuts: r.imagePromptCuts || [],
+        videoPrompt: r.videoPrompts,
+        videoPromptCuts: r.videoPromptCuts || [],
+        storyboardFrames: r.storyboardFrames,
+        agentAnalysis: r.agentAnalysis,
+        qualityGrade: r.validation?.qualityGrade,
       })
       queryClient.invalidateQueries({ queryKey: ['scene', projectId, episodeId, sceneId] })
       setSaveFlash(true)
@@ -604,6 +603,7 @@ export function SceneAIPanel({ scene, project, characters, projectId, episodeId,
         videoPromptCuts: result.videoPromptCuts || [],
         storyboardFrames: result.storyboardFrames,
         agentAnalysis: result.agentAnalysis,
+        qualityGrade: result.validation?.qualityGrade,
       })
       queryClient.invalidateQueries({ queryKey: ['scene', projectId, episodeId, sceneId] })
       toast.success('에셋이 저장되었습니다!')
@@ -1151,6 +1151,7 @@ function emptyVideoPrompts() { return { kling: '', sora: '', runway: '' } }
 function emptyValidation(): ValidationResult { return { styleCompliance: '', prohibitedCheck: '', keyElementReflection: '', recommendations: '', qualityGrade: 'B', raw: '' } }
 
 function buildResultFromAssets(scene: Scene): AgentResult {
+  const savedGrade = scene.assets.qualityGrade
   return {
     analysis: emptyAnalysis(),
     characterContext: emptyCharCtx(),
@@ -1160,7 +1161,7 @@ function buildResultFromAssets(scene: Scene): AgentResult {
     videoPrompts: scene.assets.videoPrompt || emptyVideoPrompts(),
     videoPromptCuts: scene.assets.videoPromptCuts || [],
     storyboardFrames: scene.assets.storyboardFrames || [],
-    validation: emptyValidation(),
+    validation: savedGrade ? { ...emptyValidation(), qualityGrade: savedGrade } : emptyValidation(),
     agentAnalysis: scene.assets.agentAnalysis || '',
     steps: [],
   }

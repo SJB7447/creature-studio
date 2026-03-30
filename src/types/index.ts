@@ -185,6 +185,7 @@ export interface SceneAssets {
   storyboardFrames?: StoryboardFrame[]
   agentAnalysis?: string
   generatedImages?: GeneratedImage[]
+  qualityGrade?: 'A' | 'B' | 'C'
 }
 
 export interface SceneTransform {
