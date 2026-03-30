@@ -4,10 +4,11 @@ import { useParams } from 'next/navigation'
 import { useQuery } from '@tanstack/react-query'
 import { getProject, getEpisodes, getScenes, getCharacters } from '@/lib/firestore'
 import { Scene, Character } from '@/types'
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { Download, FileText, Image, Video, Code, Database, Loader2, CheckCircle, Package } from 'lucide-react'
 import { toast } from 'sonner'
 import { motion } from 'framer-motion'
+import { ContestFormFiller } from '@/components/export/ContestFormFiller'
 
 type ExportId = 'scripts' | 'image' | 'video' | 'storyboard' | 'json' | 'ebs'
 
@@ -23,7 +24,11 @@ export default function ExportPage() {
     storyboard: true,
     characters: true,
     prompts: true,
+    contestForm: false,
   })
+
+  // 공모전 신청서 DOCX (ContestFormFiller에서 생성된 것)
+  const contestDocxRef = useRef<{ blob: Blob; filename: string } | null>(null)
 
   const { data: project } = useQuery({
     queryKey: ['project', projectId],
@@ -309,6 +314,12 @@ h1{color:#7C3AED;margin-bottom:4px;font-size:24px}.sub{color:#6B7280;font-size:1
         setProgress(85)
       }
 
+      // 5. 공모전 신청서 DOCX (있을 경우)
+      if (ebsItems.contestForm && contestDocxRef.current) {
+        zip.file(`05_${contestDocxRef.current.filename}`, contestDocxRef.current.blob)
+        setProgress(92)
+      }
+
       const blob = await zip.generateAsync({ type: 'blob' })
       const dateStr = new Date().toISOString().slice(0, 10)
       download(blob, `EBS_submission_${project?.titleEn || 'project'}_${dateStr}.zip`, 'application/zip')
@@ -338,6 +349,7 @@ h1{color:#7C3AED;margin-bottom:4px;font-size:24px}.sub{color:#6B7280;font-size:1
             { key: 'storyboard' as const, label: '스토리보드 (HTML)' },
             { key: 'characters' as const, label: '캐릭터 설정집 (캐릭터 정보 PDF)' },
             { key: 'prompts' as const, label: 'AI 활용 전략서 (프롬프트 Markdown)' },
+            { key: 'contestForm' as const, label: '공모전 신청서 DOCX (아래에서 생성 필요)' },
           ].map(item => (
             <label key={item.key} className="flex items-center gap-2 text-xs cursor-pointer" style={{ color: 'var(--color-text-sub)' }}>
               <input
@@ -361,7 +373,7 @@ h1{color:#7C3AED;margin-bottom:4px;font-size:24px}.sub{color:#6B7280;font-size:1
         <p className="text-sm mt-0.5" style={{ color: 'var(--color-text-sub)' }}>생성된 모든 에셋을 다양한 형식으로 내보냅니다.</p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
         {EXPORTS.map((exp, i) => (
           <motion.div key={exp.id} initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.08 }}
             className="p-5 rounded-xl border transition-colors"
@@ -403,6 +415,19 @@ h1{color:#7C3AED;margin-bottom:4px;font-size:24px}.sub{color:#6B7280;font-size:1
           </motion.div>
         ))}
       </div>
+      {/* 공모전 신청서 자동 작성 */}
+      {project && (
+        <ContestFormFiller
+          project={project}
+          characters={characters}
+          episodes={episodes}
+          onDocxReady={(blob, filename) => {
+            contestDocxRef.current = { blob, filename }
+            setEbsItems(prev => ({ ...prev, contestForm: true }))
+            toast.success('신청서가 EBS 패키지에 자동으로 포함됩니다!')
+          }}
+        />
+      )}
     </div>
   )
 }
