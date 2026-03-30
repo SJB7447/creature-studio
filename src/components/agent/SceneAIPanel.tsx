@@ -587,16 +587,14 @@ export function SceneAIPanel({ scene, project, characters, projectId, episodeId,
     if (!result) return
     setSaving(true)
     try {
-      await updateScene(projectId, episodeId, sceneId, {
-        assets: {
-          directorScript: result.directorScript,
-          imagePrompt: result.imagePrompts,
-          imagePromptCuts: result.imagePromptCuts || [],
-          videoPrompt: result.videoPrompts,
-          videoPromptCuts: result.videoPromptCuts || [],
-          storyboardFrames: result.storyboardFrames,
-          agentAnalysis: result.agentAnalysis,
-        },
+      await updateSceneAssets(projectId, episodeId, sceneId, {
+        directorScript: result.directorScript,
+        imagePrompt: result.imagePrompts,
+        imagePromptCuts: result.imagePromptCuts || [],
+        videoPrompt: result.videoPrompts,
+        videoPromptCuts: result.videoPromptCuts || [],
+        storyboardFrames: result.storyboardFrames,
+        agentAnalysis: result.agentAnalysis,
       })
       queryClient.invalidateQueries({ queryKey: ['scene', projectId, episodeId, sceneId] })
       toast.success('에셋이 저장되었습니다!')

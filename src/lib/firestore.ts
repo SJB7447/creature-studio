@@ -14,6 +14,7 @@ import {
   onSnapshot,
   arrayUnion,
   arrayRemove,
+  runTransaction,
   DocumentData,
   QueryDocumentSnapshot,
   Unsubscribe,
@@ -171,7 +172,10 @@ export async function createCharacter(projectId: string, data: Omit<Character, '
 }
 
 export async function updateCharacter(projectId: string, characterId: string, data: Partial<Character>): Promise<void> {
-  await updateDoc(doc(db, 'projects', projectId, 'characters', characterId), data)
+  await updateDoc(doc(db, 'projects', projectId, 'characters', characterId), {
+    ...data,
+    updatedAt: serverTimestamp(),
+  })
 }
 
 export async function deleteCharacter(projectId: string, characterId: string): Promise<void> {
@@ -205,7 +209,10 @@ export async function updateConfirmedAsset(
   assetId: string,
   data: Partial<ConfirmedAsset>
 ): Promise<void> {
-  await updateDoc(doc(db, 'projects', projectId, 'confirmedAssets', assetId), data)
+  await updateDoc(doc(db, 'projects', projectId, 'confirmedAssets', assetId), {
+    ...data,
+    updatedAt: serverTimestamp(),
+  })
 }
 
 export async function deleteConfirmedAsset(projectId: string, assetId: string): Promise<void> {
@@ -432,18 +439,20 @@ export async function getProjectInvitations(projectId: string): Promise<Invitati
 
 export async function acceptInvitation(invitationId: string, userId: string): Promise<void> {
   const invRef = doc(db, 'invitations', invitationId)
-  const invSnap = await getDoc(invRef)
-  if (!invSnap.exists()) throw new Error('초대를 찾을 수 없습니다.')
-  const inv = invSnap.data() as Invitation
+  // 트랜잭션: 초대 상태 확인 + 협업자 추가 + 상태 업데이트를 원자적으로 처리
+  await runTransaction(db, async (transaction) => {
+    const invSnap = await transaction.get(invRef)
+    if (!invSnap.exists()) throw new Error('초대를 찾을 수 없습니다.')
+    const inv = invSnap.data() as Invitation
+    if (inv.status !== 'pending') throw new Error('이미 처리된 초대입니다.')
 
-  // 프로젝트 collaborators에 추가
-  await updateDoc(doc(db, 'projects', inv.projectId), {
-    collaborators: arrayUnion(userId),
-    updatedAt: serverTimestamp(),
+    const projectRef = doc(db, 'projects', inv.projectId)
+    transaction.update(projectRef, {
+      collaborators: arrayUnion(userId),
+      updatedAt: serverTimestamp(),
+    })
+    transaction.update(invRef, { status: 'accepted', toUserId: userId })
   })
-
-  // 초대 상태 업데이트
-  await updateDoc(invRef, { status: 'accepted', toUserId: userId })
 }
 
 export async function declineInvitation(invitationId: string): Promise<void> {
@@ -535,6 +544,7 @@ export async function markAllNotificationsRead(userId: string): Promise<void> {
 }
 
 // ─── Scene Assets Update ──────────────────────────────────────
+// runTransaction으로 읽기→쓰기를 원자적으로 처리해 동시 저장 시 데이터 손실 방지
 export async function updateSceneAssets(
   projectId: string,
   episodeId: string,
@@ -542,11 +552,13 @@ export async function updateSceneAssets(
   assets: Partial<Scene['assets']>
 ): Promise<void> {
   const sceneRef = doc(db, 'projects', projectId, 'episodes', episodeId, 'scenes', sceneId)
-  const snap = await getDoc(sceneRef)
-  if (!snap.exists()) throw new Error('씬을 찾을 수 없습니다.')
-  const current = snap.data().assets || {}
-  await updateDoc(sceneRef, {
-    assets: { ...current, ...assets },
-    updatedAt: serverTimestamp(),
+  await runTransaction(db, async (transaction) => {
+    const snap = await transaction.get(sceneRef)
+    if (!snap.exists()) throw new Error('씬을 찾을 수 없습니다.')
+    const current = snap.data().assets || {}
+    transaction.update(sceneRef, {
+      assets: { ...current, ...assets },
+      updatedAt: serverTimestamp(),
+    })
   })
 }

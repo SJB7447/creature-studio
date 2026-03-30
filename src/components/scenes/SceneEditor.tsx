@@ -106,7 +106,8 @@ export function SceneEditor({ scene, project, characters, projectId, episodeId, 
     debounceRef.current = setTimeout(async () => {
       setSaveStatus('saving')
       try {
-        await updateScene(projectId, episodeId, sceneId, updated)
+        const { assets: _assets, ...sceneWithoutAssets } = updated
+        await updateScene(projectId, episodeId, sceneId, sceneWithoutAssets)
         queryClient.invalidateQueries({ queryKey: ['scene', projectId, episodeId, sceneId] })
         setSaveStatus('saved')
       } catch (e: any) {
@@ -122,7 +123,8 @@ export function SceneEditor({ scene, project, characters, projectId, episodeId, 
     setSaving(true)
     setSaveStatus('saving')
     try {
-      await updateScene(projectId, episodeId, sceneId, currentScene)
+      const { assets: _assets, ...sceneWithoutAssets } = currentScene
+      await updateScene(projectId, episodeId, sceneId, sceneWithoutAssets)
       queryClient.invalidateQueries({ queryKey: ['scene', projectId, episodeId, sceneId] })
       setSaveStatus('saved')
       toast.success('저장되었습니다.')
