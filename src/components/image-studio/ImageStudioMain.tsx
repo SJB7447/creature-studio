@@ -493,14 +493,17 @@ function SceneImageCard({
 
     setGeneratingCut(selectedCut)
     try {
-      const { promptSuffix, referenceImageUrls } = buildCharacterPromptSuffix(
+      const { promptSuffix, referenceImageUrls: charRefUrls } = buildCharacterPromptSuffix(
         charSelections, allCharacters, confirmedAssets
       )
-      const assetSuffix = buildConfirmedAssetPromptSuffix(assetSelections, confirmedAssets)
+      const { assetSuffix, assetReferenceImageUrls } = buildConfirmedAssetPromptSuffix(assetSelections, confirmedAssets)
+
+      // 캐릭터 레퍼런스 우선, 나머지 슬롯에 에셋 레퍼런스 채움 (최대 3장)
+      const allRefUrls = [...charRefUrls, ...assetReferenceImageUrls].slice(0, 3)
 
       const cameraPrefix = cameraAngle ? (CAMERA_ANGLES.find(a => a.id === cameraAngle)?.prompt ?? '') + ' ' : ''
       const finalPrompt = cameraPrefix + basePrompt + promptSuffix + assetSuffix
-      const hasRef = referenceImageUrls.length > 0
+      const hasRef = allRefUrls.length > 0
       const finalModel: ImagenModelId = hasRef && model === 'imagen3' ? 'gemini-flash' : model
 
       // 1. 이미지 4장 생성 API 호출
@@ -513,7 +516,7 @@ function SceneImageCard({
           aspectRatio: project.artContext.aspectRatio,
           model: finalModel,
           count: 4,
-          referenceImageUrls: hasRef ? referenceImageUrls : undefined,
+          referenceImageUrls: hasRef ? allRefUrls : undefined,
         }),
       })
       const data = await res.json()
@@ -602,9 +605,10 @@ function SceneImageCard({
   const totalGenerated = Object.keys(generatedMap).length
 
   const { main: activePrompt } = getActivePrompt()
-  const { promptSuffix, referenceImageUrls } = buildCharacterPromptSuffix(charSelections, allCharacters, confirmedAssets)
-  const assetSuffix = buildConfirmedAssetPromptSuffix(assetSelections, confirmedAssets)
-  const hasRef = referenceImageUrls.length > 0
+  const { promptSuffix, referenceImageUrls: charRefUrls } = buildCharacterPromptSuffix(charSelections, allCharacters, confirmedAssets)
+  const { assetSuffix, assetReferenceImageUrls } = buildConfirmedAssetPromptSuffix(assetSelections, confirmedAssets)
+  const allRefUrls = [...charRefUrls, ...assetReferenceImageUrls].slice(0, 3)
+  const hasRef = allRefUrls.length > 0
   const cameraPrefix = cameraAngle ? (CAMERA_ANGLES.find(a => a.id === cameraAngle)?.prompt ?? '') + ' ' : ''
   const finalPreviewPrompt = cameraPrefix + activePrompt + promptSuffix + assetSuffix
 

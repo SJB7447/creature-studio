@@ -737,24 +737,34 @@ export function ConfirmedAssetController({ confirmedAssets, selections, onChange
 export function buildConfirmedAssetPromptSuffix(
   selections: ConfirmedAssetSelection[],
   confirmedAssets: ConfirmedAsset[]
-): string {
+): { assetSuffix: string; assetReferenceImageUrls: string[] } {
   const included = selections.filter(s => s.included)
-  if (included.length === 0) return ''
+  if (included.length === 0) return { assetSuffix: '', assetReferenceImageUrls: [] }
 
   const byCategory: Record<string, string[]> = {}
+  const referenceUrls: string[] = []
+
   for (const sel of included) {
     const asset = confirmedAssets.find(a => a.id === sel.assetId)
     if (!asset) continue
     const cfg = ASSET_CATEGORY_CONFIG[asset.category]
     if (!cfg) continue
+
+    // 텍스트 프롬프트 수집
     const label = cfg.promptLabel
     const desc = asset.prompt || asset.description || asset.name
     if (!byCategory[label]) byCategory[label] = []
     byCategory[label].push(desc)
+
+    // 레퍼런스 이미지 URL 수집 (이미지 파일만)
+    const refUrl = asset.thumbnailUrl || (asset.fileType?.startsWith('image') ? asset.fileUrl : null)
+    if (refUrl) referenceUrls.push(refUrl)
   }
 
   const parts = Object.entries(byCategory).map(([label, descs]) => `${label}: ${descs.join(', ')}`)
-  return parts.length > 0 ? `\n\n[Scene assets: ${parts.join(' | ')}]` : ''
+  const assetSuffix = parts.length > 0 ? `\n\n[Scene assets: ${parts.join(' | ')}]` : ''
+
+  return { assetSuffix, assetReferenceImageUrls: referenceUrls }
 }
 
 // ─── initConfirmedAssetSelections ─────────────────────────
