@@ -462,35 +462,44 @@ export function SceneAIPanel({ scene, project, characters, projectId, episodeId,
       const reader = res.body!.getReader()
       const decoder = new TextDecoder()
       let stepIndex = 0
+      let sseBuffer = '' // SSE 청크 누적 버퍼 (큰 JSON이 여러 청크에 분할될 때 대비)
+
+      const handleSseLine = (line: string) => {
+        if (!line.startsWith('data: ')) return
+        try {
+          const data = JSON.parse(line.slice(6))
+          if (data.type === 'progress') {
+            const p = data.progress
+            const idx = p.stepNumber - 1
+            setSteps(prev => prev.map((s, i) => {
+              if (i === idx) return { ...s, status: p.step === 'done' ? 'done' : p.step === 'error' ? 'error' : 'running', result: typeof p.result === 'string' ? p.result : s.result, error: p.step === 'error' ? p.message : undefined }
+              if (i < idx && s.status !== 'done' && s.status !== 'error') return { ...s, status: 'done' as const }
+              return s
+            }))
+            if (p.step !== 'done' && p.step !== 'error') { stepIndex = p.stepNumber; setAgentStep(stepIndex) }
+          } else if (data.type === 'result') {
+            setResult(data.result)
+            setActiveTab('script')
+            setAgentStatus('done')
+            autoSave(data.result)
+          } else if (data.type === 'error') {
+            toast.error('오류: ' + data.message)
+            setAgentStatus('error')
+          }
+        } catch { /* 파싱 실패 시 무시 */ }
+      }
+
       while (true) {
         const { done, value } = await reader.read()
         if (done) break
-        const text = decoder.decode(value)
-        for (const line of text.split('\n').filter(l => l.startsWith('data: '))) {
-          try {
-            const data = JSON.parse(line.slice(6))
-            if (data.type === 'progress') {
-              const p = data.progress
-              const idx = p.stepNumber - 1
-              setSteps(prev => prev.map((s, i) => {
-                if (i === idx) return { ...s, status: p.step === 'done' ? 'done' : p.step === 'error' ? 'error' : 'running', result: typeof p.result === 'string' ? p.result : s.result, error: p.step === 'error' ? p.message : undefined }
-                if (i < idx && s.status !== 'done' && s.status !== 'error') return { ...s, status: 'done' as const }
-                return s
-              }))
-              if (p.step !== 'done' && p.step !== 'error') { stepIndex = p.stepNumber; setAgentStep(stepIndex) }
-            } else if (data.type === 'result') {
-              setResult(data.result)
-              setActiveTab('script')
-              setAgentStatus('done')
-              // Auto-save
-              autoSave(data.result)
-            } else if (data.type === 'error') {
-              toast.error('오류: ' + data.message)
-              setAgentStatus('error')
-            }
-          } catch { /* skip malformed */ }
-        }
+        sseBuffer += decoder.decode(value, { stream: true })
+        const lines = sseBuffer.split('\n')
+        // 마지막 줄은 아직 불완전할 수 있으므로 버퍼에 유지
+        sseBuffer = lines.pop() ?? ''
+        for (const line of lines) handleSseLine(line)
       }
+      // 스트림 종료 후 남은 버퍼 처리
+      if (sseBuffer) handleSseLine(sseBuffer)
     } catch (e: any) {
       if (e.name !== 'AbortError') { toast.error('실행 실패: ' + e.message); setAgentStatus('error') }
     } finally {
