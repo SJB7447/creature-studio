@@ -3,105 +3,89 @@ import { GoogleGenerativeAI } from '@google/generative-ai'
 import mammoth from 'mammoth'
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!)
-const model = genAI.getGenerativeModel({
+
+// Vision(PDF/이미지)용: 토큰을 충분히 확보
+const visionModel = genAI.getGenerativeModel({
   model: 'gemini-2.0-flash',
   generationConfig: {
     temperature: 0.1,
     topP: 0.95,
-    maxOutputTokens: 8192,
+    maxOutputTokens: 16384,
+  },
+})
+
+// 텍스트(DOCX/TXT)용
+const textModel = genAI.getGenerativeModel({
+  model: 'gemini-2.0-flash',
+  generationConfig: {
+    temperature: 0.1,
+    topP: 0.95,
+    maxOutputTokens: 16384,
   },
 })
 
 /**
  * DOCX → HTML 변환 후 테이블 구조를 보존한 텍스트로 변환
- * mammoth.extractRawText()는 표(table) 구조를 평탄화해서 씬 경계를 잃음
- * HTML 변환 후 행/셀 구분자를 삽입해 AI가 구조를 파악할 수 있게 함
  */
 async function extractDocxStructured(buffer: Buffer): Promise<string> {
   const htmlResult = await mammoth.convertToHtml({ buffer })
   const html = htmlResult.value
 
-  const structured = html
-    // 테이블 행: [행] 마커 삽입
+  return html
     .replace(/<tr[^>]*>/gi, '\n[행]')
     .replace(/<\/tr>/gi, '')
-    // 테이블 셀: 파이프(|) 구분
     .replace(/<td[^>]*>/gi, ' | ')
     .replace(/<\/td>/gi, '')
     .replace(/<th[^>]*>/gi, ' | ')
     .replace(/<\/th>/gi, '')
-    // 단락 구분
     .replace(/<\/p>/gi, '\n')
     .replace(/<br\s*\/?>/gi, '\n')
-    // 나머지 HTML 태그 제거
     .replace(/<[^>]+>/g, '')
-    // HTML 엔티티 복원
     .replace(/&nbsp;/g, ' ')
     .replace(/&amp;/g, '&')
     .replace(/&lt;/g, '<')
     .replace(/&gt;/g, '>')
     .replace(/&quot;/g, '"')
-    // 연속 공백/빈줄 정리
     .replace(/[ \t]{2,}/g, ' ')
     .replace(/\n{3,}/g, '\n\n')
     .trim()
-
-  return structured
 }
 
-function buildPrompt(episodeContext: string): string {
-  return `당신은 영상 제작 기획안/스토리보드/대본에서 씬(scene) 목록을 추출하는 전문가입니다.
+/** PDF/이미지용 프롬프트: 간결하고 Vision에 최적화 */
+function buildVisionPrompt(episodeContext: string): string {
+  return `당신은 영상 기획안/스토리보드 PDF에서 씬 목록을 추출하는 전문가입니다.
+문서의 모든 페이지를 빠짐없이 읽고 씬을 추출하세요.
 
 ## 에피소드 컨텍스트
 ${episodeContext}
 
-## 씬 구분 패턴 (모두 인식할 것)
-아래 형식 중 하나가 씬의 시작을 나타냅니다:
-- "Scene 1.", "Scene 2." (영문 Scene + 번호 + 점)
-- "씬1", "씬 1", "씬1.", "씬 1."
-- "장면1", "장면 1"
-- "S1", "S1.", "S01"
-- "## 씬", "### Scene"
+## 씬 인식 패턴
+- "Scene 1.", "Scene 2." … (영문 Scene + 번호 + 점)
+- "씬1", "씬 1", "장면1", "S1", "S01"
+- 제목이 없어도 이전 씬의 표가 다음 페이지에서 계속되면 같은 씬으로 처리
 
-## 한국어 스토리보드 필드 매핑 규칙
+## 각 씬의 표 필드 매핑
+| 표 필드명 | 추출 대상 | 처리 방법 |
+|----------|----------|---------|
+| 러닝타임 | timeStart / timeEnd | "0:00 ~ 0:25" → timeStart:"0:00", timeEnd:"0:25" |
+| 화면 | backgroundDescription | 시각적 배경/공간 묘사 전체 |
+| 대사 | actionDescription | 주요 대사 포함해서 씬에서 일어나는 일 서술 + characters 추출 |
+| 의도 | directorNote | 연출 의도 전문 |
 
-| 문서 필드명 | 매핑 대상 | 설명 |
-|------------|----------|------|
-| 러닝타임, 런닝타임, 시간 | timeStart / timeEnd | "0:25~0:50" 또는 "0:25 ~ 0:50" → timeStart:"0:25", timeEnd:"0:50" |
-| 화면, 화면묘사, 비주얼 | backgroundDescription | 배경/공간/시각적 묘사 전체 |
-| 대사, 대화, 스크립트 | actionDescription의 일부 + characters | 대사에서 등장인물 이름 추출, 내용은 actionDescription에 포함 |
-| 의도, 연출 의도, 씬 의도 | directorNote | 씬의 연출 목적/의도 |
-| 장소, location | location | 공간명 |
-| 등장인물, 캐릭터 | characters | 캐릭터 이름 배열 |
-
-## 추출 세부 규칙
-
-1. **씬 번호**: 문서에 명시된 번호를 그대로 사용. "Scene 1." → number: 1
-2. **씬 제목**: 씬 구분자 옆에 있는 제목 그대로 사용. 예: "Scene 1. 오프닝 - 도담 동물병원의 아침" → title: "오프닝 - 도담 동물병원의 아침"
-3. **장소(location)**: '화면' 묘사 첫 줄이나 제목에서 추출. 예: "도담 동물병원 전경" → location: "도담 동물병원"
-4. **시간대(timeOfDay)**: 아침/오전→morning, 낮/오후→afternoon, 저녁→evening, 밤/야간→night, 실내/내부→interior. 명시 없으면 interior.
-5. **등장인물(characters)**: '대사' 필드에서 "이름:" 또는 "이름(나레이션):" 패턴으로 등장하는 캐릭터 이름을 추출. 중복 제거.
-6. **actionDescription**: '화면' 내용(행동/사건 부분) + '대사' 내용을 결합해서 씬에서 일어나는 일을 2~4문장으로 서술.
-7. **backgroundDescription**: '화면' 필드의 배경/공간/환경 묘사 부분.
-8. **감정 키워드(emotionKeywords)**: '의도' 또는 씬 전체 내용에서 감정 톤 키워드 2~4개 추출.
-9. **시작/종료 시간**: '러닝타임' 필드에서 추출. "0:00~0:25" → timeStart:"0:00", timeEnd:"0:25". 분:초 또는 시:분:초 형식 모두 인식.
-10. **directorNote**: '의도' 필드 내용 그대로.
-
-## 출력 형식 (순수 JSON만 출력, 마크다운 코드블록 절대 사용 금지)
-
+## 출력 형식 (순수 JSON, 마크다운 코드블록 금지)
 {
   "scenes": [
     {
       "number": 1,
-      "title": "씬 제목",
-      "location": "장소",
+      "title": "씬 제목 (Scene X. 옆 텍스트 그대로)",
+      "location": "장소 (화면 또는 제목에서 추출)",
       "timeOfDay": "morning | afternoon | evening | night | interior",
-      "characters": ["캐릭터1", "캐릭터2"],
-      "actionDescription": "씬에서 일어나는 행동/사건 + 주요 대사 요약",
-      "backgroundDescription": "화면/배경/공간 묘사",
-      "emotionKeywords": ["감정1", "감정2"],
-      "soundDesign": "사운드/음악 정보 (없으면 빈 문자열)",
-      "directorNote": "의도/연출 노트",
+      "characters": ["대사 필드에서 추출한 등장인물 이름들"],
+      "actionDescription": "화면+대사 내용을 합쳐 씬에서 일어나는 일 서술",
+      "backgroundDescription": "화면 필드 내용",
+      "emotionKeywords": ["씬 감정 키워드 2~4개"],
+      "soundDesign": "",
+      "directorNote": "의도 필드 내용",
       "timeStart": "0:00",
       "timeEnd": "0:25"
     }
@@ -110,11 +94,47 @@ ${episodeContext}
   "confidence": "high | medium | low"
 }
 
-## 최종 주의사항
-- 문서에 [행] | 구분자가 있으면 테이블에서 추출된 것이므로 행/열 구조를 파악해 씬을 분리하세요.
-- 에피소드 컨텍스트에 맞는 씬만 추출하세요.
-- 씬이 하나도 없으면 빈 배열 []을 반환하지 말고, 문서 전체를 다시 읽어 씬 경계를 다시 찾아보세요.
-- 반드시 유효한 JSON만 반환하세요.`
+중요: 문서의 모든 씬을 빠짐없이 추출하세요. 페이지가 넘어가도 Scene 번호가 연속되면 모두 포함합니다.`
+}
+
+/** DOCX/TXT용 프롬프트: 테이블 구조 마커 활용 */
+function buildTextPrompt(episodeContext: string): string {
+  return `당신은 영상 기획안/스토리보드에서 씬 목록을 추출하는 전문가입니다.
+
+## 에피소드 컨텍스트
+${episodeContext}
+
+## 씬 구분 패턴
+"Scene 1.", "Scene 2.", "씬1", "씬 1", "장면1", "S1" 등
+
+## 테이블 필드 매핑
+문서에 [행] 마커와 | 구분자가 있으면 테이블입니다.
+- 러닝타임 → timeStart/timeEnd ("0:00 ~ 0:25" 파싱)
+- 화면 → backgroundDescription
+- 대사 → actionDescription (등장인물 이름 → characters 배열)
+- 의도 → directorNote
+
+## 출력 형식 (순수 JSON, 마크다운 코드블록 금지)
+{
+  "scenes": [
+    {
+      "number": 1,
+      "title": "씬 제목",
+      "location": "장소",
+      "timeOfDay": "morning | afternoon | evening | night | interior",
+      "characters": ["캐릭터1"],
+      "actionDescription": "행동/사건 서술",
+      "backgroundDescription": "화면 묘사",
+      "emotionKeywords": ["감정1", "감정2"],
+      "soundDesign": "",
+      "directorNote": "의도",
+      "timeStart": "0:00",
+      "timeEnd": "0:25"
+    }
+  ],
+  "totalScenes": 10,
+  "confidence": "high | medium | low"
+}`
 }
 
 export async function POST(req: NextRequest) {
@@ -160,13 +180,13 @@ export async function POST(req: NextRequest) {
     const isDocx = file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
       || file.type === 'application/msword'
 
-    const prompt = buildPrompt(episodeContext)
     let result
 
     if (isImage || isPdf) {
-      // 이미지/PDF: Gemini Vision으로 직접 읽음 (표 구조 그대로 인식 가능)
+      // Vision 모드: PDF/이미지를 Gemini가 직접 시각적으로 읽음
       const base64 = buffer.toString('base64')
-      result = await model.generateContent([
+      const prompt = buildVisionPrompt(episodeContext)
+      result = await visionModel.generateContent([
         prompt,
         { inlineData: { data: base64, mimeType: file.type } },
       ])
@@ -179,10 +199,14 @@ export async function POST(req: NextRequest) {
           { status: 400 }
         )
       }
-      result = await model.generateContent(`${prompt}\n\n--- 문서 내용 (표 구조 보존됨: [행]은 테이블 행 구분, |는 셀 구분) ---\n${structured}`)
+      const prompt = buildTextPrompt(episodeContext)
+      result = await textModel.generateContent(
+        `${prompt}\n\n--- 문서 내용 ([행] = 테이블 행 구분, | = 셀 구분) ---\n${structured}`
+      )
     } else {
       const text = buffer.toString('utf-8')
-      result = await model.generateContent(`${prompt}\n\n--- 문서 내용 ---\n${text}`)
+      const prompt = buildTextPrompt(episodeContext)
+      result = await textModel.generateContent(`${prompt}\n\n--- 문서 내용 ---\n${text}`)
     }
 
     const raw = result.response.text()
@@ -192,9 +216,19 @@ export async function POST(req: NextRequest) {
     try {
       parsed = JSON.parse(cleaned)
     } catch {
+      // JSON이 잘린 경우 복구 시도
       const jsonMatch = cleaned.match(/\{[\s\S]*\}/)
       if (jsonMatch) {
-        parsed = JSON.parse(jsonMatch[0])
+        try {
+          parsed = JSON.parse(jsonMatch[0])
+        } catch {
+          // 불완전한 JSON 마지막 씬 잘림 처리: scenes 배열까지만 추출
+          const scenesMatch = cleaned.match(/"scenes"\s*:\s*\[[\s\S]*/)
+          if (scenesMatch) {
+            throw new Error(`AI 응답이 너무 길어 잘렸습니다. 씬 수가 많은 경우 문서를 화수별로 분리해서 업로드해 주세요.`)
+          }
+          throw new Error('AI 응답을 JSON으로 파싱할 수 없습니다.')
+        }
       } else {
         throw new Error('AI 응답을 JSON으로 파싱할 수 없습니다.')
       }
