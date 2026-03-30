@@ -505,7 +505,7 @@ function SceneImageCard({
   const [selectedCut, setSelectedCut] = useState(0)
   const [model, setModel] = useState<ImagenModelId>('gemini-flash')
   const [saving, setSaving] = useState(false)
-  const [assetControllerExpanded, setAssetControllerExpanded] = useState(true)
+  const [assetControllerExpanded, setAssetControllerExpanded] = useState(false)
 
   // Firestore에 저장된 이미지로 초기 상태 복원 (구 데이터 호환: candidates/selectedIndex 없을 수 있음)
   const [generatedMap, setGeneratedMap] = useState<Record<number, GeneratedImage>>(() => {
@@ -766,9 +766,9 @@ function SceneImageCard({
                 </div>
               )}
 
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 pt-2">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 pt-2 items-start">
                 {/* Left: Controls */}
-                <div className="space-y-3">
+                <div className="space-y-3 overflow-y-auto" style={{ maxHeight: '36rem' }}>
                   {/* Character controller */}
                   {scene.characters.length > 0 && (
                     <div>
@@ -939,7 +939,7 @@ function SceneImageCard({
                       />
                     </>
                   ) : (
-                    <div className="h-full min-h-40 flex flex-col items-center justify-center rounded-xl border-2 border-dashed"
+                    <div className="min-h-40 flex flex-col items-center justify-center rounded-xl border-2 border-dashed py-10"
                       style={{ borderColor: 'var(--color-border)' }}>
                       <Image className="w-8 h-8 mb-2 opacity-30" style={{ color: 'var(--color-text-sub)' }} />
                       <p className="text-xs" style={{ color: 'var(--color-text-sub)' }}>아직 생성된 이미지가 없습니다.</p>
