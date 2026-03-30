@@ -439,6 +439,7 @@ function SceneImageCard({
   const [selectedCut, setSelectedCut] = useState(0)
   const [model, setModel] = useState<ImagenModelId>('gemini-flash')
   const [saving, setSaving] = useState(false)
+  const [assetControllerExpanded, setAssetControllerExpanded] = useState(true)
 
   // Firestore에 저장된 이미지로 초기 상태 복원 (구 데이터 호환: candidates/selectedIndex 없을 수 있음)
   const [generatedMap, setGeneratedMap] = useState<Record<number, GeneratedImage>>(() => {
@@ -722,15 +723,23 @@ function SceneImageCard({
                   {/* Confirmed assets controller (background, prop, effect) */}
                   {confirmedAssets.some(a => a.category === 'background' || a.category === 'prop' || a.category === 'effect') && (
                     <div>
-                      <div className="flex items-center gap-1.5 mb-2">
-                        <Layers className="w-3.5 h-3.5" style={{ color: '#7C3AED' }} />
-                        <p className="text-xs font-semibold" style={{ color: 'var(--color-text)' }}>확정 에셋 컨트롤</p>
-                      </div>
-                      <ConfirmedAssetController
-                        confirmedAssets={confirmedAssets}
-                        selections={assetSelections}
-                        onChange={setAssetSelections}
-                      />
+                      <button
+                        className="flex items-center justify-between w-full mb-2"
+                        onClick={() => setAssetControllerExpanded(v => !v)}
+                      >
+                        <div className="flex items-center gap-1.5">
+                          <Layers className="w-3.5 h-3.5" style={{ color: '#7C3AED' }} />
+                          <p className="text-xs font-semibold" style={{ color: 'var(--color-text)' }}>확정 에셋 컨트롤</p>
+                        </div>
+                        <ChevronDown className={cn('w-3.5 h-3.5 transition-transform', assetControllerExpanded ? 'rotate-180' : '')} style={{ color: 'var(--color-text-sub)' }} />
+                      </button>
+                      {assetControllerExpanded && (
+                        <ConfirmedAssetController
+                          confirmedAssets={confirmedAssets}
+                          selections={assetSelections}
+                          onChange={setAssetSelections}
+                        />
+                      )}
                     </div>
                   )}
 

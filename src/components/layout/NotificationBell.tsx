@@ -12,6 +12,7 @@ import {
   subscribeNotifications,
   markNotificationRead,
   markAllNotificationsRead,
+  notifyProjectMembers,
 } from '@/lib/firestore'
 import { AppNotification, Invitation } from '@/types'
 import { toast } from 'sonner'
@@ -59,7 +60,21 @@ export function NotificationBell() {
   }, [])
 
   const acceptMutation = useMutation({
-    mutationFn: (invId: string) => acceptInvitation(invId, user!.uid),
+    mutationFn: async (invId: string) => {
+      const inv = invitations.find((i: Invitation) => i.id === invId)
+      await acceptInvitation(invId, user!.uid)
+      if (inv && user) {
+        notifyProjectMembers({
+          actorId: user.uid,
+          actorName: user.displayName || user.email || '팀원',
+          actorPhoto: user.photoURL || undefined,
+          actionType: 'collaborator_added',
+          projectId: inv.projectId,
+          projectTitle: inv.projectTitle,
+          targetTitle: user.displayName || user.email || '팀원',
+        })
+      }
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['my-invitations'] })
       queryClient.invalidateQueries({ queryKey: ['projects'] })

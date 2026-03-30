@@ -2,7 +2,8 @@
 
 import { useParams } from 'next/navigation'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { getConfirmedAssets, createConfirmedAsset, updateConfirmedAsset, deleteConfirmedAsset } from '@/lib/firestore'
+import { getConfirmedAssets, createConfirmedAsset, updateConfirmedAsset, deleteConfirmedAsset, getProject, notifyProjectMembers } from '@/lib/firestore'
+import { useAuthStore } from '@/store/authStore'
 import { uploadConfirmedAsset } from '@/lib/storage'
 import { ConfirmedAsset, ConfirmedAssetCategory } from '@/types'
 import { useState, useRef } from 'react'
@@ -48,6 +49,8 @@ function AssetModal({
   open: boolean; onClose: () => void; projectId: string; editAsset?: ConfirmedAsset | null
 }) {
   const queryClient = useQueryClient()
+  const { user } = useAuthStore()
+  const { data: project } = useQuery({ queryKey: ['project', projectId], queryFn: () => getProject(projectId), enabled: !!projectId })
   const [name, setName] = useState(editAsset?.name || '')
   const [category, setCategory] = useState<ConfirmedAssetCategory>(editAsset?.category || 'character')
   const [description, setDescription] = useState(editAsset?.description || '')
@@ -111,6 +114,17 @@ function AssetModal({
         await updateConfirmedAsset(projectId, editAsset.id, payload)
       } else {
         await createConfirmedAsset(projectId, payload)
+        if (user && project) {
+          notifyProjectMembers({
+            actorId: user.uid,
+            actorName: user.displayName || user.email || '팀원',
+            actorPhoto: user.photoURL || undefined,
+            actionType: 'asset_confirmed',
+            projectId,
+            projectTitle: project.title,
+            targetTitle: payload.name,
+          })
+        }
       }
 
       queryClient.invalidateQueries({ queryKey: ['confirmedAssets', projectId] })
