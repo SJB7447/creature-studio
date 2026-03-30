@@ -7,9 +7,11 @@ import { useProjectStore } from '@/store/projectStore'
 import { useEffect } from 'react'
 import { EpisodeList } from '@/components/episodes/EpisodeList'
 import { NewEpisodeButton } from '@/components/episodes/NewEpisodeButton'
+import { EpisodeSyncPanel } from '@/components/episodes/EpisodeSyncPanel'
 import { PROJECT_STATUS_LABELS, PROJECT_TYPE_LABELS } from '@/lib/utils'
 import { motion } from 'framer-motion'
-import { Film, Calendar, Tv } from 'lucide-react'
+import { Film, Calendar, Tv, RefreshCw } from 'lucide-react'
+import { useState } from 'react'
 
 export default function ProjectPage() {
   const { projectId } = useParams<{ projectId: string }>()
@@ -17,6 +19,7 @@ export default function ProjectPage() {
 
   const { project, projectLoading } = useProject(projectId)
   const { episodes, episodesLoading } = useEpisode(projectId)
+  const [syncOpen, setSyncOpen] = useState(false)
 
   useEffect(() => {
     if (project) {
@@ -112,13 +115,31 @@ export default function ProjectPage() {
           에피소드
           <span className="ml-2 text-sm font-normal" style={{ color: 'var(--color-text-sub)' }}>({episodes.length}편)</span>
         </h2>
-        <NewEpisodeButton projectId={projectId} />
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setSyncOpen(true)}
+            className="flex items-center gap-1.5 px-3 py-2 rounded-xl border text-sm font-medium transition-colors hover:opacity-80"
+            style={{ borderColor: 'var(--color-border)', color: 'var(--color-text-sub)', background: 'var(--color-surface)' }}
+          >
+            <RefreshCw className="w-3.5 h-3.5" />
+            기획안으로 업데이트
+          </button>
+          <NewEpisodeButton projectId={projectId} />
+        </div>
       </div>
 
       <EpisodeList
         episodes={episodes}
         projectId={projectId}
         loading={episodesLoading}
+      />
+
+      <EpisodeSyncPanel
+        open={syncOpen}
+        onClose={() => setSyncOpen(false)}
+        projectId={projectId}
+        existingEpisodes={episodes}
+        projectRuntime={project.productionInfo.runtime}
       />
     </div>
   )
