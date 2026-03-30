@@ -10,6 +10,7 @@ import { Save, Trash2 } from 'lucide-react'
 import { useProjectStore } from '@/store/projectStore'
 import { useAuthStore } from '@/store/authStore'
 import { CollaboratorPanel } from '@/components/projects/CollaboratorPanel'
+import { ProjectDocumentUpdatePanel } from '@/components/projects/ProjectDocumentUpdatePanel'
 
 interface FormData {
   title: string
@@ -119,6 +120,13 @@ export default function ProjectSettingsPage() {
   return (
     <div className="p-4 sm:p-6 max-w-2xl mx-auto">
       <h1 className="text-xl font-bold mb-6" style={{ color: 'var(--color-text)' }}>프로젝트 설정</h1>
+
+      {/* 문서로 업데이트 패널 */}
+      {project && (
+        <div className="mb-6">
+          <ProjectDocumentUpdatePanel project={project} />
+        </div>
+      )}
 
       <form onSubmit={handleSubmit(d => updateMutation.mutate(d))} className="space-y-6">
         {/* Basic */}
