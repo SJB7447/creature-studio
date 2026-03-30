@@ -22,7 +22,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import {
   Wand2, Image, Loader2, Download, ZoomIn, ChevronDown, ChevronUp,
   CheckCircle, AlertCircle, Layers, User, Sparkles, RefreshCw, Info, X,
-  Camera, Maximize2,
+  Camera, Maximize2, Pencil,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -520,13 +520,20 @@ function SceneImageCard({
   const [generatingCut, setGeneratingCut] = useState<number | null>(null)
   const [cameraAngle, setCameraAngle] = useState<CameraAngleId>('')
   const [showPromptModal, setShowPromptModal] = useState(false)
+  const [promptOverride, setPromptOverride] = useState<string | null>(null) // null = 원본 사용
+  const [editingPrompt, setEditingPrompt] = useState(false)
 
   const [charSelections, setCharSelections] = useState<CharacterSelection[]>(() =>
     initCharacterSelections(scene.characters, allCharacters, scene.emotionKeywords)
   )
 
   const [assetSelections, setAssetSelections] = useState<ConfirmedAssetSelection[]>(() =>
-    initConfirmedAssetSelections(confirmedAssets)
+    initConfirmedAssetSelections(confirmedAssets, {
+      location: scene.location,
+      backgroundDescription: scene.backgroundDescription,
+      title: scene.title,
+      actionDescription: scene.actionDescription,
+    })
   )
 
   const hasPrompts = !!(scene.assets.imagePrompt || (scene.assets.imagePromptCuts?.length ?? 0) > 0)
@@ -547,21 +554,20 @@ function SceneImageCard({
   }
 
   async function handleGenerate() {
-    const { main: basePrompt, negative: negativePrompt } = getActivePrompt()
-    if (!basePrompt) { toast.error('이미지 프롬프트가 없습니다. 씬 에디터에서 먼저 AI를 실행해주세요.'); return }
+    const { negative: negativePrompt } = getActivePrompt()
+    // 편집된 프롬프트 또는 자동 합성 프롬프트 사용
+    const finalPrompt = finalPreviewPrompt
+    if (!finalPrompt.trim()) { toast.error('이미지 프롬프트가 없습니다. 씬 에디터에서 먼저 AI를 실행해주세요.'); return }
 
     setGeneratingCut(selectedCut)
     try {
-      const { promptSuffix, referenceImageUrls: charRefUrls } = buildCharacterPromptSuffix(
+      const { referenceImageUrls: charRefUrls } = buildCharacterPromptSuffix(
         charSelections, allCharacters, confirmedAssets
       )
-      const { assetSuffix, assetReferenceImageUrls } = buildConfirmedAssetPromptSuffix(assetSelections, confirmedAssets)
+      const { assetReferenceImageUrls } = buildConfirmedAssetPromptSuffix(assetSelections, confirmedAssets)
 
       // 캐릭터 레퍼런스 우선, 나머지 슬롯에 에셋 레퍼런스 채움 (최대 3장)
       const allRefUrls = [...charRefUrls, ...assetReferenceImageUrls].slice(0, 3)
-
-      const cameraPrefix = cameraAngle ? (CAMERA_ANGLES.find(a => a.id === cameraAngle)?.prompt ?? '') + ' ' : ''
-      const finalPrompt = cameraPrefix + basePrompt + promptSuffix + assetSuffix
       const hasRef = allRefUrls.length > 0
       const finalModel: ImagenModelId = hasRef && model === 'imagen3' ? 'gemini-flash' : model
 
@@ -663,13 +669,15 @@ function SceneImageCard({
   const isGenerating = generatingCut === selectedCut
   const totalGenerated = Object.keys(generatedMap).length
 
-  const { main: activePrompt } = getActivePrompt()
+  const { main: activePrompt, negative: activeNegative } = getActivePrompt()
   const { promptSuffix, referenceImageUrls: charRefUrls } = buildCharacterPromptSuffix(charSelections, allCharacters, confirmedAssets)
   const { assetSuffix, assetReferenceImageUrls } = buildConfirmedAssetPromptSuffix(assetSelections, confirmedAssets)
   const allRefUrls = [...charRefUrls, ...assetReferenceImageUrls].slice(0, 3)
   const hasRef = allRefUrls.length > 0
   const cameraPrefix = cameraAngle ? (CAMERA_ANGLES.find(a => a.id === cameraAngle)?.prompt ?? '') + ' ' : ''
-  const finalPreviewPrompt = cameraPrefix + activePrompt + promptSuffix + assetSuffix
+  const autoFinalPrompt = cameraPrefix + activePrompt + promptSuffix + assetSuffix
+  // 사용자가 직접 편집한 경우 오버라이드 사용, 아니면 자동 합성 사용
+  const finalPreviewPrompt = promptOverride !== null ? promptOverride : autoFinalPrompt
 
   return (
     <div
@@ -761,7 +769,7 @@ function SceneImageCard({
                     scene={scene}
                     selectedCut={selectedCut}
                     generatedMap={generatedMap}
-                    onSelect={setSelectedCut}
+                    onSelect={(cut) => { setSelectedCut(cut); setPromptOverride(null); setEditingPrompt(false) }}
                   />
                 </div>
               )}
@@ -828,19 +836,53 @@ function SceneImageCard({
                     </p>
                   </div>
 
-                  {/* Prompt preview */}
+                  {/* Prompt preview / edit */}
                   {activePrompt && (
                     <div>
                       <div className="flex items-center justify-between mb-1">
-                        <p className="text-[10px] font-semibold" style={{ color: 'var(--color-text-sub)' }}>
-                          최종 프롬프트 미리보기
-                        </p>
                         <div className="flex items-center gap-1.5">
-                          {(cameraAngle || promptSuffix || assetSuffix) && (
+                          <p className="text-[10px] font-semibold" style={{ color: 'var(--color-text-sub)' }}>
+                            최종 프롬프트
+                          </p>
+                          {promptOverride !== null && (
+                            <span className="text-[9px] px-1.5 py-0.5 rounded font-medium" style={{ background: '#FEF3C7', color: '#D97706' }}>
+                              수정됨
+                            </span>
+                          )}
+                          {promptOverride === null && (cameraAngle || promptSuffix || assetSuffix) && (
                             <span className="text-[9px] px-1.5 py-0.5 rounded font-medium" style={{ background: '#EDE9FE', color: '#7C3AED' }}>
                               {[cameraAngle && '앵글', promptSuffix && '캐릭터', assetSuffix && '에셋'].filter(Boolean).join('+')} 적용
                             </span>
                           )}
+                        </div>
+                        <div className="flex items-center gap-1">
+                          {promptOverride !== null && (
+                            <button
+                              onClick={() => { setPromptOverride(null); setEditingPrompt(false) }}
+                              className="flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[9px] border transition-colors hover:bg-red-50"
+                              style={{ borderColor: '#FCA5A5', color: '#EF4444' }}
+                              title="원본으로 되돌리기"
+                            >
+                              <RefreshCw className="w-2.5 h-2.5" /> 초기화
+                            </button>
+                          )}
+                          <button
+                            onClick={() => {
+                              if (!editingPrompt) {
+                                if (promptOverride === null) setPromptOverride(autoFinalPrompt)
+                                setEditingPrompt(true)
+                              } else {
+                                setEditingPrompt(false)
+                              }
+                            }}
+                            className="flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[9px] border transition-colors hover:bg-[var(--color-surface-2)]"
+                            style={{
+                              borderColor: editingPrompt ? '#7C3AED' : 'var(--color-border)',
+                              color: editingPrompt ? '#7C3AED' : 'var(--color-text-sub)',
+                            }}
+                          >
+                            <Pencil className="w-2.5 h-2.5" /> {editingPrompt ? '완료' : '편집'}
+                          </button>
                           <button
                             onClick={() => setShowPromptModal(true)}
                             className="flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[9px] border transition-colors hover:bg-[var(--color-surface-2)]"
@@ -850,18 +892,38 @@ function SceneImageCard({
                           </button>
                         </div>
                       </div>
-                      <div
-                        className="p-2.5 rounded-lg border text-[10px] font-mono leading-relaxed overflow-y-auto"
-                        style={{
-                          background: 'var(--color-surface-2)',
-                          borderColor: 'var(--color-border)',
-                          color: 'var(--color-text-sub)',
-                          whiteSpace: 'pre-wrap',
-                          maxHeight: '7rem',
-                        }}
-                      >
-                        {finalPreviewPrompt}
-                      </div>
+                      {editingPrompt ? (
+                        <textarea
+                          value={promptOverride ?? autoFinalPrompt}
+                          onChange={e => setPromptOverride(e.target.value)}
+                          rows={5}
+                          className="w-full p-2.5 rounded-lg border text-[10px] font-mono leading-relaxed resize-y"
+                          style={{
+                            background: 'var(--color-surface)',
+                            borderColor: '#7C3AED',
+                            color: 'var(--color-text)',
+                            outline: 'none',
+                          }}
+                        />
+                      ) : (
+                        <div
+                          className="p-2.5 rounded-lg border text-[10px] font-mono leading-relaxed overflow-y-auto cursor-text"
+                          style={{
+                            background: promptOverride !== null ? '#FFFBEB' : 'var(--color-surface-2)',
+                            borderColor: promptOverride !== null ? '#FCD34D' : 'var(--color-border)',
+                            color: 'var(--color-text-sub)',
+                            whiteSpace: 'pre-wrap',
+                            maxHeight: '7rem',
+                          }}
+                          onClick={() => {
+                            if (promptOverride === null) setPromptOverride(autoFinalPrompt)
+                            setEditingPrompt(true)
+                          }}
+                          title="클릭하여 프롬프트 편집"
+                        >
+                          {finalPreviewPrompt}
+                        </div>
+                      )}
                     </div>
                   )}
 

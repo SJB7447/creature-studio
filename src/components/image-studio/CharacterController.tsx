@@ -769,8 +769,42 @@ export function buildConfirmedAssetPromptSuffix(
 
 // ─── initConfirmedAssetSelections ─────────────────────────
 
-export function initConfirmedAssetSelections(confirmedAssets: ConfirmedAsset[]): ConfirmedAssetSelection[] {
+interface SceneContext {
+  location?: string
+  backgroundDescription?: string
+  title?: string
+  actionDescription?: string
+}
+
+/** 씬 컨텍스트와 에셋 이름/설명을 비교해 매칭되는 에셋만 자동 선택 */
+function isAssetMatchingScene(asset: ConfirmedAsset, scene: SceneContext): boolean {
+  // 씬 텍스트: 장소 + 배경 설명 + 제목 + 액션 설명
+  const sceneText = [
+    scene.location ?? '',
+    scene.backgroundDescription ?? '',
+    scene.title ?? '',
+    scene.actionDescription ?? '',
+  ].join(' ').toLowerCase()
+
+  // 에셋 텍스트: 이름 + 설명
+  const assetText = [
+    asset.name ?? '',
+    (asset as any).description ?? '',
+  ].join(' ').toLowerCase()
+
+  // 에셋 단어 중 하나라도 씬 텍스트에 포함되면 매칭
+  const assetWords = assetText.split(/[\s,·\/\-]+/).filter(w => w.length >= 2)
+  return assetWords.some(word => sceneText.includes(word))
+}
+
+export function initConfirmedAssetSelections(
+  confirmedAssets: ConfirmedAsset[],
+  scene?: SceneContext
+): ConfirmedAssetSelection[] {
   return confirmedAssets
     .filter(a => a.category === 'background' || a.category === 'prop' || a.category === 'effect')
-    .map(a => ({ assetId: a.id, included: true }))
+    .map(a => ({
+      assetId: a.id,
+      included: scene ? isAssetMatchingScene(a, scene) : false,
+    }))
 }
