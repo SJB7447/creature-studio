@@ -521,7 +521,6 @@ function SceneImageCard({
   const [cameraAngle, setCameraAngle] = useState<CameraAngleId>('')
   const [showPromptModal, setShowPromptModal] = useState(false)
   const [promptOverride, setPromptOverride] = useState<string | null>(null) // null = 원본 사용
-  const [editingPrompt, setEditingPrompt] = useState(false)
 
   const [charSelections, setCharSelections] = useState<CharacterSelection[]>(() =>
     initCharacterSelections(scene.characters, allCharacters, scene.emotionKeywords)
@@ -769,7 +768,7 @@ function SceneImageCard({
                     scene={scene}
                     selectedCut={selectedCut}
                     generatedMap={generatedMap}
-                    onSelect={(cut) => { setSelectedCut(cut); setPromptOverride(null); setEditingPrompt(false) }}
+                    onSelect={(cut) => { setSelectedCut(cut); setPromptOverride(null) }}
                   />
                 </div>
               )}
@@ -836,18 +835,14 @@ function SceneImageCard({
                     </p>
                   </div>
 
-                  {/* Prompt preview / edit */}
+                  {/* Prompt preview (read-only, click to open editor modal) */}
                   {activePrompt && (
                     <div>
                       <div className="flex items-center justify-between mb-1">
                         <div className="flex items-center gap-1.5">
-                          <p className="text-[10px] font-semibold" style={{ color: 'var(--color-text-sub)' }}>
-                            최종 프롬프트
-                          </p>
+                          <p className="text-[10px] font-semibold" style={{ color: 'var(--color-text-sub)' }}>최종 프롬프트</p>
                           {promptOverride !== null && (
-                            <span className="text-[9px] px-1.5 py-0.5 rounded font-medium" style={{ background: '#FEF3C7', color: '#D97706' }}>
-                              수정됨
-                            </span>
+                            <span className="text-[9px] px-1.5 py-0.5 rounded font-medium" style={{ background: '#FEF3C7', color: '#D97706' }}>수정됨</span>
                           )}
                           {promptOverride === null && (cameraAngle || promptSuffix || assetSuffix) && (
                             <span className="text-[9px] px-1.5 py-0.5 rounded font-medium" style={{ background: '#EDE9FE', color: '#7C3AED' }}>
@@ -855,109 +850,105 @@ function SceneImageCard({
                             </span>
                           )}
                         </div>
-                        <div className="flex items-center gap-1">
-                          {promptOverride !== null && (
-                            <button
-                              onClick={() => { setPromptOverride(null); setEditingPrompt(false) }}
-                              className="flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[9px] border transition-colors hover:bg-red-50"
-                              style={{ borderColor: '#FCA5A5', color: '#EF4444' }}
-                              title="원본으로 되돌리기"
-                            >
-                              <RefreshCw className="w-2.5 h-2.5" /> 초기화
-                            </button>
-                          )}
-                          <button
-                            onClick={() => {
-                              if (!editingPrompt) {
-                                if (promptOverride === null) setPromptOverride(autoFinalPrompt)
-                                setEditingPrompt(true)
-                              } else {
-                                setEditingPrompt(false)
-                              }
-                            }}
-                            className="flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[9px] border transition-colors hover:bg-[var(--color-surface-2)]"
-                            style={{
-                              borderColor: editingPrompt ? '#7C3AED' : 'var(--color-border)',
-                              color: editingPrompt ? '#7C3AED' : 'var(--color-text-sub)',
-                            }}
-                          >
-                            <Pencil className="w-2.5 h-2.5" /> {editingPrompt ? '완료' : '편집'}
-                          </button>
-                          <button
-                            onClick={() => setShowPromptModal(true)}
-                            className="flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[9px] border transition-colors hover:bg-[var(--color-surface-2)]"
-                            style={{ borderColor: 'var(--color-border)', color: 'var(--color-text-sub)' }}
-                          >
-                            <Maximize2 className="w-2.5 h-2.5" /> 전체보기
-                          </button>
-                        </div>
-                      </div>
-                      {editingPrompt ? (
-                        <textarea
-                          value={promptOverride ?? autoFinalPrompt}
-                          onChange={e => setPromptOverride(e.target.value)}
-                          rows={5}
-                          className="w-full p-2.5 rounded-lg border text-[10px] font-mono leading-relaxed resize-y"
-                          style={{
-                            background: 'var(--color-surface)',
-                            borderColor: '#7C3AED',
-                            color: 'var(--color-text)',
-                            outline: 'none',
-                          }}
-                        />
-                      ) : (
-                        <div
-                          className="p-2.5 rounded-lg border text-[10px] font-mono leading-relaxed overflow-y-auto cursor-text"
-                          style={{
-                            background: promptOverride !== null ? '#FFFBEB' : 'var(--color-surface-2)',
-                            borderColor: promptOverride !== null ? '#FCD34D' : 'var(--color-border)',
-                            color: 'var(--color-text-sub)',
-                            whiteSpace: 'pre-wrap',
-                            maxHeight: '7rem',
-                          }}
-                          onClick={() => {
-                            if (promptOverride === null) setPromptOverride(autoFinalPrompt)
-                            setEditingPrompt(true)
-                          }}
-                          title="클릭하여 프롬프트 편집"
+                        <button
+                          onClick={() => { if (promptOverride === null) setPromptOverride(autoFinalPrompt); setShowPromptModal(true) }}
+                          className="flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[9px] border transition-colors hover:bg-[var(--color-surface-2)]"
+                          style={{ borderColor: 'var(--color-border)', color: 'var(--color-text-sub)' }}
                         >
-                          {finalPreviewPrompt}
-                        </div>
-                      )}
+                          <Pencil className="w-2.5 h-2.5" /> 편집 / 전체보기
+                        </button>
+                      </div>
+                      <div
+                        className="p-2.5 rounded-lg border text-[10px] font-mono leading-relaxed overflow-y-auto cursor-pointer"
+                        style={{
+                          background: promptOverride !== null ? '#FFFBEB' : 'var(--color-surface-2)',
+                          borderColor: promptOverride !== null ? '#FCD34D' : 'var(--color-border)',
+                          color: 'var(--color-text-sub)',
+                          whiteSpace: 'pre-wrap',
+                          maxHeight: '6rem',
+                        }}
+                        onClick={() => { if (promptOverride === null) setPromptOverride(autoFinalPrompt); setShowPromptModal(true) }}
+                        title="클릭하여 프롬프트 편집"
+                      >
+                        {finalPreviewPrompt}
+                      </div>
                     </div>
                   )}
 
-                  {/* Prompt full-view modal */}
+                  {/* Prompt edit modal (full-screen popup) */}
                   {showPromptModal && (
                     <div
                       className="fixed inset-0 z-50 flex items-center justify-center p-4"
-                      style={{ background: 'rgba(0,0,0,0.6)' }}
+                      style={{ background: 'rgba(0,0,0,0.7)' }}
                       onClick={() => setShowPromptModal(false)}
                     >
                       <div
-                        className="rounded-2xl border shadow-2xl w-full max-w-2xl max-h-[80vh] flex flex-col"
-                        style={{ background: 'var(--color-surface)', borderColor: 'var(--color-border)' }}
+                        className="rounded-2xl border shadow-2xl w-full max-w-3xl flex flex-col"
+                        style={{ background: 'var(--color-surface)', borderColor: 'var(--color-border)', maxHeight: '85vh' }}
                         onClick={e => e.stopPropagation()}
                       >
-                        <div className="flex items-center justify-between px-4 py-3 border-b" style={{ borderColor: 'var(--color-border)' }}>
-                          <p className="text-sm font-semibold" style={{ color: 'var(--color-text)' }}>최종 프롬프트 전체보기</p>
+                        {/* Header */}
+                        <div className="flex items-center justify-between px-5 py-3.5 border-b shrink-0" style={{ borderColor: 'var(--color-border)' }}>
+                          <div className="flex items-center gap-2">
+                            <Pencil className="w-4 h-4" style={{ color: '#7C3AED' }} />
+                            <p className="text-sm font-semibold" style={{ color: 'var(--color-text)' }}>프롬프트 편집</p>
+                            {promptOverride !== null && (
+                              <span className="text-[10px] px-2 py-0.5 rounded-full font-medium" style={{ background: '#FEF3C7', color: '#D97706' }}>수정됨</span>
+                            )}
+                            {promptOverride === null && (cameraAngle || promptSuffix || assetSuffix) && (
+                              <span className="text-[10px] px-2 py-0.5 rounded-full font-medium" style={{ background: '#EDE9FE', color: '#7C3AED' }}>
+                                {[cameraAngle && '앵글', promptSuffix && '캐릭터', assetSuffix && '에셋'].filter(Boolean).join('+')} 자동 적용
+                              </span>
+                            )}
+                          </div>
                           <button onClick={() => setShowPromptModal(false)}>
-                            <X className="w-4 h-4" style={{ color: 'var(--color-text-sub)' }} />
+                            <X className="w-5 h-5" style={{ color: 'var(--color-text-sub)' }} />
                           </button>
                         </div>
-                        <div className="flex-1 overflow-y-auto p-4">
-                          <pre className="text-[11px] font-mono leading-relaxed whitespace-pre-wrap" style={{ color: 'var(--color-text)' }}>
-                            {finalPreviewPrompt}
-                          </pre>
+
+                        {/* Textarea */}
+                        <div className="flex-1 overflow-hidden p-4" style={{ minHeight: 0 }}>
+                          <textarea
+                            value={promptOverride ?? autoFinalPrompt}
+                            onChange={e => setPromptOverride(e.target.value)}
+                            className="w-full h-full p-3 rounded-xl border text-[12px] font-mono leading-relaxed resize-none"
+                            style={{
+                              background: 'var(--color-surface-2)',
+                              borderColor: '#7C3AED',
+                              color: 'var(--color-text)',
+                              outline: 'none',
+                              minHeight: '40vh',
+                            }}
+                            placeholder="프롬프트를 입력하세요..."
+                            autoFocus
+                          />
                         </div>
-                        <div className="px-4 py-3 border-t flex justify-end" style={{ borderColor: 'var(--color-border)' }}>
+
+                        {/* Footer */}
+                        <div className="px-5 py-3.5 border-t flex items-center justify-between shrink-0" style={{ borderColor: 'var(--color-border)' }}>
                           <button
-                            onClick={() => { navigator.clipboard.writeText(finalPreviewPrompt); setShowPromptModal(false) }}
-                            className="px-3 py-1.5 rounded-lg text-xs font-semibold text-white"
-                            style={{ background: '#7C3AED' }}
+                            onClick={() => setPromptOverride(null)}
+                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors hover:bg-red-50"
+                            style={{ borderColor: '#FCA5A5', color: '#EF4444' }}
                           >
-                            복사하고 닫기
+                            <RefreshCw className="w-3.5 h-3.5" /> 원본으로 초기화
                           </button>
+                          <div className="flex items-center gap-2">
+                            <button
+                              onClick={() => navigator.clipboard.writeText(promptOverride ?? autoFinalPrompt)}
+                              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors hover:bg-[var(--color-surface-2)]"
+                              style={{ borderColor: 'var(--color-border)', color: 'var(--color-text-sub)' }}
+                            >
+                              복사
+                            </button>
+                            <button
+                              onClick={() => setShowPromptModal(false)}
+                              className="flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-xs font-semibold text-white"
+                              style={{ background: '#7C3AED' }}
+                            >
+                              적용하고 닫기
+                            </button>
+                          </div>
                         </div>
                       </div>
                     </div>
