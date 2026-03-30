@@ -101,6 +101,9 @@ async function generateWithImagen3(
       ...(opts.negativePrompt ? { negativePrompt: opts.negativePrompt } : {}),
       safetySetting: 'block_only_high',
       personGeneration: 'allow_adult',
+      outputOptions: {
+        mimeType: 'image/png',  // lossless PNG 출력
+      },
     },
   }
 

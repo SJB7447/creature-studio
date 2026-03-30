@@ -37,6 +37,40 @@ async function downloadImage(url: string, filename: string) {
   document.body.removeChild(a)
 }
 
+/** 이미지를 Imagen 업스케일(x2) 후 다운로드 — 약 2K 해상도 */
+async function download2KImage(url: string, filename: string, onStart?: () => void, onEnd?: () => void) {
+  onStart?.()
+  try {
+    const res = await fetch('/api/upscale-image', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ imageUrl: url, factor: 'x2' }),
+    })
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ error: '업스케일 실패' }))
+      throw new Error(err.error ?? '업스케일 실패')
+    }
+    const { imageData, mimeType } = await res.json()
+    const ext = mimeType?.split('/')[1] ?? 'png'
+    const baseName = filename.replace(/\.[^.]+$/, '')
+    const upscaledFilename = `${baseName}_2K.${ext}`
+
+    // base64 → Blob → 다운로드
+    const byteArray = Uint8Array.from(atob(imageData), c => c.charCodeAt(0))
+    const blob = new Blob([byteArray], { type: mimeType ?? 'image/png' })
+    const objectUrl = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = objectUrl
+    a.download = upscaledFilename
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    URL.revokeObjectURL(objectUrl)
+  } finally {
+    onEnd?.()
+  }
+}
+
 function buildFilename(sceneNumber: number, cutNumber: number, candidateIndex: number, roundNumber?: number): string {
   const cutStr = cutNumber === 0 ? '대표' : `컷${String(cutNumber).padStart(2, '0')}`
   const roundStr = roundNumber !== undefined ? `_이력${roundNumber}` : ''
@@ -183,6 +217,7 @@ function CandidateGrid({
   onSelect: (index: number) => void
 }) {
   const [lightboxIdx, setLightboxIdx] = useState<number | null>(null)
+  const [upscaling, setUpscaling] = useState(false)
   const candidates = image.candidates ?? [image.url]
 
   return (
@@ -198,15 +233,32 @@ function CandidateGrid({
             · {IMAGEN_MODELS[image.model as ImagenModelId]?.label ?? image.model}
           </span>
         </div>
-        {/* Download selected */}
-        <button
-          onClick={() => downloadImage(image.url, buildFilename(sceneNumber, cutNumber, image.selectedIndex ?? 0))}
-          className="flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-medium border transition-colors hover:bg-[var(--color-surface-2)]"
-          style={{ borderColor: 'var(--color-border)', color: 'var(--color-text-sub)' }}
-          title="선택된 이미지 다운로드"
-        >
-          <Download className="w-3 h-3" /> 저장
-        </button>
+        {/* Download buttons */}
+        <div className="flex items-center gap-1">
+          <button
+            onClick={() => downloadImage(image.url, buildFilename(sceneNumber, cutNumber, image.selectedIndex ?? 0))}
+            className="flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-medium border transition-colors hover:bg-[var(--color-surface-2)]"
+            style={{ borderColor: 'var(--color-border)', color: 'var(--color-text-sub)' }}
+            title="원본 해상도 다운로드"
+          >
+            <Download className="w-3 h-3" /> 저장
+          </button>
+          <button
+            disabled={upscaling}
+            onClick={() => download2KImage(
+              image.url,
+              buildFilename(sceneNumber, cutNumber, image.selectedIndex ?? 0),
+              () => setUpscaling(true),
+              () => setUpscaling(false),
+            )}
+            className="flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-medium border transition-colors hover:bg-purple-50 disabled:opacity-50 disabled:cursor-not-allowed"
+            style={{ borderColor: '#7C3AED', color: '#7C3AED' }}
+            title="2K 업스케일 후 다운로드"
+          >
+            {upscaling ? <Loader2 className="w-3 h-3 animate-spin" /> : <Maximize2 className="w-3 h-3" />}
+            {upscaling ? '처리중...' : '2K'}
+          </button>
+        </div>
       </div>
 
       {/* 2×2 grid */}
@@ -299,7 +351,21 @@ function CandidateGrid({
                 className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-semibold border"
                 style={{ background: 'white', color: '#374151', borderColor: '#D1D5DB' }}
               >
-                <Download className="w-4 h-4" /> 다운로드
+                <Download className="w-4 h-4" /> 원본 저장
+              </button>
+              <button
+                disabled={upscaling}
+                onClick={() => download2KImage(
+                  candidates[lightboxIdx],
+                  buildFilename(sceneNumber, cutNumber, lightboxIdx),
+                  () => setUpscaling(true),
+                  () => setUpscaling(false),
+                )}
+                className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-semibold border disabled:opacity-50 disabled:cursor-not-allowed"
+                style={{ background: '#F5F3FF', color: '#7C3AED', borderColor: '#7C3AED' }}
+              >
+                {upscaling ? <Loader2 className="w-4 h-4 animate-spin" /> : <Maximize2 className="w-4 h-4" />}
+                {upscaling ? '2K 변환중...' : '2K 저장'}
               </button>
             </div>
             <p className="text-center text-[10px] mt-1.5 text-gray-400">
