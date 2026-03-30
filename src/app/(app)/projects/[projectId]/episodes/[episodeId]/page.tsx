@@ -4,12 +4,13 @@ import { useParams } from 'next/navigation'
 import { useEpisode } from '@/hooks/useEpisode'
 import { useScene } from '@/hooks/useScene'
 import { useProjectStore } from '@/store/projectStore'
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { SceneList } from '@/components/scenes/SceneList'
 import { NewSceneButton } from '@/components/scenes/NewSceneButton'
+import { SceneSyncPanel } from '@/components/scenes/SceneSyncPanel'
 import { EPISODE_STATUS_LABELS } from '@/lib/utils'
 import { motion } from 'framer-motion'
-import { Heart, MessageSquare, Clock } from 'lucide-react'
+import { Heart, MessageSquare, Clock, RefreshCw } from 'lucide-react'
 
 export default function EpisodePage() {
   const { projectId, episodeId } = useParams<{ projectId: string; episodeId: string }>()
@@ -17,6 +18,7 @@ export default function EpisodePage() {
 
   const { episode, episodeLoading: epLoading } = useEpisode(projectId, episodeId)
   const { scenes, scenesLoading } = useScene(projectId, episodeId)
+  const [syncOpen, setSyncOpen] = useState(false)
 
   useEffect(() => {
     if (episode) setCurrentEpisode(episode)
@@ -99,7 +101,17 @@ export default function EpisodePage() {
           씬 목록
           <span className="ml-2 text-sm font-normal" style={{ color: 'var(--color-text-sub)' }}>({scenes.length}개)</span>
         </h2>
-        <NewSceneButton projectId={projectId} episodeId={episodeId} />
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setSyncOpen(true)}
+            className="flex items-center gap-1.5 px-3 py-2 rounded-xl border text-sm font-medium transition-colors hover:opacity-80"
+            style={{ borderColor: 'var(--color-border)', color: 'var(--color-text-sub)', background: 'var(--color-surface)' }}
+          >
+            <RefreshCw className="w-3.5 h-3.5" />
+            기획안으로 업데이트
+          </button>
+          <NewSceneButton projectId={projectId} episodeId={episodeId} />
+        </div>
       </div>
 
       <SceneList
@@ -107,6 +119,15 @@ export default function EpisodePage() {
         projectId={projectId}
         episodeId={episodeId}
         loading={scenesLoading}
+      />
+
+      <SceneSyncPanel
+        open={syncOpen}
+        onClose={() => setSyncOpen(false)}
+        projectId={projectId}
+        episodeId={episodeId}
+        episode={episode}
+        existingScenes={scenes}
       />
     </div>
   )
