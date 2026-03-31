@@ -149,9 +149,7 @@ async function generateWithGemini(
     const hasRef = (opts.referenceImages?.length ?? 0) > 0
     const parts: any[] = []
 
-    // 비율·해상도 지시 (Gemini는 generationConfig.aspectRatio 미지원 → 프롬프트에 명시)
     const ar = toImagenAspectRatio(opts.aspectRatio)
-    const arInstruction = `IMPORTANT: Generate this image in strict ${ar} widescreen landscape aspect ratio. Output must be wider than it is tall (landscape orientation). Target high-resolution output (2K quality, approximately 2560x1440 or 1920x1080 minimum).\n\n`
 
     // 레퍼런스 이미지가 있으면 이미지를 먼저 첨부하고 캐릭터 일관성 지시를 명시
     if (hasRef) {
@@ -159,16 +157,21 @@ async function generateWithGemini(
         parts.push({ inline_data: { mime_type: ref.mimeType, data: ref.data } })
       }
       parts.push({
-        text: `${arInstruction}The image(s) above are character reference sheets. Maintain the exact appearance, design, and style of these characters in the generated image.\n\n${opts.prompt}`,
+        text: `The image(s) above are character reference sheets. Maintain the exact appearance, design, and style of these characters in the generated image.\n\n${opts.prompt}`,
       })
     } else {
-      parts.push({ text: arInstruction + opts.prompt })
+      parts.push({ text: opts.prompt })
     }
 
     const body = {
       contents: [{ role: 'user', parts }],
       generationConfig: {
         responseModalities: ['TEXT', 'IMAGE'],
+        // 공식 API: image_config로 AR·해상도 직접 지정
+        image_config: {
+          aspect_ratio: ar,   // e.g. "16:9"
+          image_size: '2K',   // "512" | "1K" | "2K" | "4K"
+        },
       },
     }
     const res = await fetch(url, {
