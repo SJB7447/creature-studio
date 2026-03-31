@@ -37,35 +37,58 @@ async function downloadImage(url: string, filename: string) {
   document.body.removeChild(a)
 }
 
-/** 이미지를 Imagen 업스케일(x2) 후 다운로드 — 약 2K 해상도 */
-async function download2KImage(url: string, filename: string, onStart?: () => void, onEnd?: () => void) {
+/** 이미지를 Canvas 2x 업스케일 후 다운로드 — 2K 해상도 (원본 2배) */
+async function download2KImage(
+  url: string,
+  filename: string,
+  onStart?: () => void,
+  onEnd?: () => void,
+  onError?: (msg: string) => void,
+) {
   onStart?.()
   try {
-    const res = await fetch('/api/upscale-image', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ imageUrl: url, factor: 'x2' }),
-    })
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({ error: '업스케일 실패' }))
-      throw new Error(err.error ?? '업스케일 실패')
-    }
-    const { imageData, mimeType } = await res.json()
-    const ext = mimeType?.split('/')[1] ?? 'png'
-    const baseName = filename.replace(/\.[^.]+$/, '')
-    const upscaledFilename = `${baseName}_2K.${ext}`
+    // Firebase Storage CORS 우회: 프록시를 통해 원본 이미지 가져오기
+    const proxyUrl = `/api/download-image?url=${encodeURIComponent(url)}`
+    const res = await fetch(proxyUrl)
+    if (!res.ok) throw new Error(`이미지 로딩 실패: ${res.status}`)
+    const blob = await res.blob()
+    const blobUrl = URL.createObjectURL(blob)
 
-    // base64 → Blob → 다운로드
-    const byteArray = Uint8Array.from(atob(imageData), c => c.charCodeAt(0))
-    const blob = new Blob([byteArray], { type: mimeType ?? 'image/png' })
-    const objectUrl = URL.createObjectURL(blob)
+    // Blob URL → Image 로드
+    const img = await new Promise<HTMLImageElement>((resolve, reject) => {
+      const image = new Image()
+      image.onload = () => resolve(image)
+      image.onerror = () => reject(new Error('이미지 로드 실패'))
+      image.src = blobUrl
+    })
+    URL.revokeObjectURL(blobUrl)
+
+    // Canvas에 2x 크기로 그리기 (고화질 보간)
+    const canvas = document.createElement('canvas')
+    canvas.width = img.naturalWidth * 2
+    canvas.height = img.naturalHeight * 2
+    const ctx = canvas.getContext('2d')!
+    ctx.imageSmoothingEnabled = true
+    ctx.imageSmoothingQuality = 'high'
+    ctx.drawImage(img, 0, 0, canvas.width, canvas.height)
+
+    // Canvas → Blob → 다운로드
+    const outputBlob = await new Promise<Blob>((resolve, reject) =>
+      canvas.toBlob(b => b ? resolve(b) : reject(new Error('이미지 변환 실패')), 'image/png')
+    )
+    const baseName = filename.replace(/\.[^.]+$/, '')
+    const upscaledFilename = `${baseName}_2K.png`
+    const dlUrl = URL.createObjectURL(outputBlob)
     const a = document.createElement('a')
-    a.href = objectUrl
+    a.href = dlUrl
     a.download = upscaledFilename
     document.body.appendChild(a)
     a.click()
     document.body.removeChild(a)
-    URL.revokeObjectURL(objectUrl)
+    URL.revokeObjectURL(dlUrl)
+  } catch (e: any) {
+    console.error('[download2KImage]', e.message)
+    onError?.(e.message ?? '2K 변환 중 오류가 발생했습니다.')
   } finally {
     onEnd?.()
   }
@@ -250,6 +273,7 @@ function CandidateGrid({
               buildFilename(sceneNumber, cutNumber, image.selectedIndex ?? 0),
               () => setUpscaling(true),
               () => setUpscaling(false),
+              (msg) => alert(`2K 업스케일 실패: ${msg}`),
             )}
             className="flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-medium border transition-colors hover:bg-purple-50 disabled:opacity-50 disabled:cursor-not-allowed"
             style={{ borderColor: '#7C3AED', color: '#7C3AED' }}
@@ -360,6 +384,7 @@ function CandidateGrid({
                   buildFilename(sceneNumber, cutNumber, lightboxIdx),
                   () => setUpscaling(true),
                   () => setUpscaling(false),
+                  (msg) => alert(`2K 업스케일 실패: ${msg}`),
                 )}
                 className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-semibold border disabled:opacity-50 disabled:cursor-not-allowed"
                 style={{ background: '#F5F3FF', color: '#7C3AED', borderColor: '#7C3AED' }}

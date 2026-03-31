@@ -46,9 +46,7 @@ export async function POST(req: NextRequest) {
   const url = `${GEMINI_API_BASE}/models/${UPSCALE_MODEL}:predict?key=${apiKey}`
   const requestBody = {
     instances: [{
-      prompt: '',
       image: { bytesBase64Encoded: base64Data },
-      mode: 'upscale',
     }],
     parameters: {
       sampleCount: 1,
