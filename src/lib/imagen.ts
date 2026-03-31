@@ -149,9 +149,9 @@ async function generateWithGemini(
     const hasRef = (opts.referenceImages?.length ?? 0) > 0
     const parts: any[] = []
 
-    // 비율 지시 (Gemini는 generationConfig.aspectRatio 미지원 → 프롬프트에 명시)
+    // 비율·해상도 지시 (Gemini는 generationConfig.aspectRatio 미지원 → 프롬프트에 명시)
     const ar = toImagenAspectRatio(opts.aspectRatio)
-    const arInstruction = `Generate this image in ${ar} (widescreen landscape) aspect ratio.\n\n`
+    const arInstruction = `IMPORTANT: Generate this image in strict ${ar} widescreen landscape aspect ratio. Output must be wider than it is tall (landscape orientation). Target high-resolution output (2K quality, approximately 2560x1440 or 1920x1080 minimum).\n\n`
 
     // 레퍼런스 이미지가 있으면 이미지를 먼저 첨부하고 캐릭터 일관성 지시를 명시
     if (hasRef) {

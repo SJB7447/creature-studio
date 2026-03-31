@@ -54,9 +54,9 @@ async function download2KImage(
     const blob = await res.blob()
     const blobUrl = URL.createObjectURL(blob)
 
-    // Blob URL → Image 로드
+    // Blob URL → Image 로드 (window.HTMLImageElement 사용 — lucide Image import 충돌 방지)
     const img = await new Promise<HTMLImageElement>((resolve, reject) => {
-      const image = new Image()
+      const image = document.createElement('img') as HTMLImageElement
       image.onload = () => resolve(image)
       image.onerror = () => reject(new Error('이미지 로드 실패'))
       image.src = blobUrl
