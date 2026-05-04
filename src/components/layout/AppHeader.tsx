@@ -11,15 +11,22 @@ import { useProjectStore } from '@/store/projectStore'
 import { useUIStore } from '@/store/uiStore'
 import { NotificationBell } from '@/components/layout/NotificationBell'
 import { HelpModal } from '@/components/help/HelpModal'
+import { CreditBadge } from '@/components/credits/CreditBadge'
+import { useCreditStore } from '@/store/creditStore'
+import { useCredits } from '@/hooks/useCredits'
 
 export function AppHeader() {
   const { user } = useAuthStore()
   const { currentProject } = useProjectStore()
   const { toggleSidebar } = useUIStore()
+  const { setShowChargeModal } = useCreditStore()
   const router = useRouter()
   const [menuOpen, setMenuOpen] = useState(false)
   const [helpOpen, setHelpOpen] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
+
+  // 크레딧 잔액 초기화 및 주기적 갱신
+  useCredits()
 
   useEffect(() => {
     function handleClick(e: MouseEvent) {
@@ -59,8 +66,11 @@ export function AppHeader() {
         )}
       </div>
 
-      {/* Right: notifications + user menu */}
+      {/* Right: credit badge + notifications + user menu */}
       <div className="flex items-center gap-1 sm:gap-2 shrink-0">
+        {/* Credit badge */}
+        <CreditBadge onClick={() => setShowChargeModal(true)} />
+
         {/* Help button */}
         <button
           onClick={() => setHelpOpen(true)}

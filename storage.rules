@@ -1,0 +1,28 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    // 유저 프로필 이미지: 본인만 쓰기, 인증 사용자 읽기
+    match /users/{userId}/{allPaths=**} {
+      allow read: if isSignedIn();
+      allow write: if isSignedIn() && request.auth.uid == userId;
+    }
+
+    // 프로젝트 파일: 인증된 사용자만 접근 (Firestore rules로 프로젝트 멤버십 검증)
+    match /projects/{projectId}/{allPaths=**} {
+      allow read: if isSignedIn();
+      allow write: if isSignedIn()
+        && request.resource.size < 50 * 1024 * 1024  // 50MB 제한
+        && (
+          request.resource.contentType.matches('image/.*') ||
+          request.resource.contentType.matches('application/pdf') ||
+          request.resource.contentType.matches('application/.*document.*') ||
+          request.resource.contentType.matches('text/.*')
+        );
+    }
+  }
+}

@@ -67,6 +67,7 @@ export interface Character {
   emotionVariants: EmotionVariant[]
   episodeAppearances: string[]
   profileImage?: string
+  masterReferenceImage?: string  // AI로 생성·확정된 마스터 레퍼런스 이미지 URL
   confirmedAt?: Timestamp
   createdAt: Timestamp
 }

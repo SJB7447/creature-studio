@@ -25,6 +25,8 @@ import {
   Camera, Maximize2, Pencil,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { useAuthStore } from '@/store/authStore'
+import { useCreditStore } from '@/store/creditStore'
 
 // ─── Download helper ──────────────────────────────────────
 async function downloadImage(url: string, filename: string) {
@@ -526,6 +528,8 @@ function SceneImageCard({
   confirmedAssets: ConfirmedAsset[]
 }) {
   const queryClient = useQueryClient()
+  const { user } = useAuthStore()
+  const { setShowChargeModal } = useCreditStore()
   const [expanded, setExpanded] = useState(false)
   const [selectedCut, setSelectedCut] = useState(0)
   const [model, setModel] = useState<ImagenModelId>('gemini-flash')
@@ -606,8 +610,15 @@ function SceneImageCard({
           model: finalModel,
           count: 4,
           referenceImageUrls: hasRef ? allRefUrls : undefined,
+          uid: user?.uid,
+          feature: 'image_generate',
         }),
       })
+      if (res.status === 402) {
+        const creditCost = (finalModel === 'gemini-pro' || finalModel === 'imagen3') ? 18 : 8
+        setShowChargeModal(true, creditCost)
+        return
+      }
       const data = await res.json()
       if (!res.ok) throw new Error(data.error)
 

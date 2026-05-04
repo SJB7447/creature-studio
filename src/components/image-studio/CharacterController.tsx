@@ -238,7 +238,7 @@ export function CharacterController({
     const isExpanded = expandedId === sel.id
     const isEditing = editingId === sel.id
     const isCustom = !sel.characterId
-    const avatarUrl = getAssetImage(asset) || char?.profileImage || null
+    const avatarUrl = getAssetImage(asset) || char?.masterReferenceImage || char?.profileImage || null
 
     const keywords = char
       ? [
@@ -563,11 +563,11 @@ export function buildCharacterPromptSuffix(
       promptParts.push(sel.label)
     }
 
-    // Reference image
+    // Reference image: confirmed asset → masterReferenceImage → profileImage 순 우선순위
     const asset = sel.assetId
       ? confirmedAssets.find(a => a.id === sel.assetId)
       : char ? findCharacterAsset(char, confirmedAssets) : null
-    const refUrl = asset?.fileUrl
+    const refUrl = asset?.fileUrl || char?.masterReferenceImage || char?.profileImage || null
     if (refUrl) referenceUrls.push(refUrl)
   }
 

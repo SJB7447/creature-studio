@@ -3,11 +3,14 @@
 import { useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuthStore } from '@/store/authStore'
+import { useCreditStore } from '@/store/creditStore'
 import { AppSidebar } from '@/components/layout/AppSidebar'
 import { AppHeader } from '@/components/layout/AppHeader'
+import { InsufficientCreditsModal } from '@/components/credits/InsufficientCreditsModal'
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuthStore()
+  const { onboardingCompleted } = useCreditStore()
   const router = useRouter()
 
   useEffect(() => {
@@ -15,6 +18,13 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       router.push('/')
     }
   }, [user, loading, router])
+
+  // 온보딩 미완료 신규 유저 → /onboarding 리다이렉트
+  useEffect(() => {
+    if (onboardingCompleted === false) {
+      router.push('/onboarding')
+    }
+  }, [onboardingCompleted, router])
 
   if (loading) {
     return (
@@ -35,6 +45,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           {children}
         </main>
       </div>
+      <InsufficientCreditsModal />
     </div>
   )
 }

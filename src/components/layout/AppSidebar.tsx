@@ -3,11 +3,14 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { cn } from '@/lib/utils'
-import { LayoutDashboard, Film, Users, Settings, LayoutGrid, Library, Download, Clapperboard, X, Lock, Wand2 } from 'lucide-react'
+import { LayoutDashboard, Film, Users, Settings, LayoutGrid, Library, Download, Clapperboard, X, Lock, Wand2, Shield } from 'lucide-react'
 import { useProjectStore } from '@/store/projectStore'
 import { useUIStore } from '@/store/uiStore'
 import { useQuery } from '@tanstack/react-query'
 import { getProject, getEpisode, getScene } from '@/lib/firestore'
+import { useAuthStore } from '@/store/authStore'
+
+const ADMIN_EMAIL = process.env.NEXT_PUBLIC_ADMIN_EMAIL ?? ''
 
 const navItems = [
   { href: '/dashboard', label: '대시보드', icon: LayoutDashboard },
@@ -15,8 +18,10 @@ const navItems = [
 
 export function AppSidebar() {
   const pathname = usePathname()
+  const { user } = useAuthStore()
   const { currentProject, currentEpisode, currentScene } = useProjectStore()
   const { sidebarOpen, setSidebarOpen } = useUIStore()
+  const isAdmin = !!user && user.email === ADMIN_EMAIL
 
   // 새로고침 시 store가 초기화되므로 URL에서 ID들을 읽어 직접 조회
   const projectIdFromPath = pathname.match(/\/projects\/([^/]+)/)?.[1]
@@ -117,7 +122,7 @@ export function AppSidebar() {
         </div>
 
         {/* Navigation */}
-        <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
+        <nav className="flex-1 p-3 space-y-1 overflow-y-auto flex flex-col">
           {navItems.map((item) => (
             <Link
               key={item.href}
@@ -182,6 +187,32 @@ export function AppSidebar() {
                   style={{
                     background: isActive(item.href) ? 'var(--color-surface-2)' : undefined,
                     color: isActive(item.href) ? 'var(--color-primary-dark)' : 'var(--color-text-sub)',
+                  }}
+                >
+                  <item.icon className="w-4 h-4" />
+                  {item.label}
+                </Link>
+              ))}
+            </div>
+          )}
+          {/* Admin section — 최하단, 관리자만 표시 */}
+          {isAdmin && (
+            <div className="mt-auto pt-3 border-t" style={{ borderColor: 'var(--color-border)' }}>
+              <p className="text-[11px] px-3 mb-1 font-semibold" style={{ color: 'var(--color-text-sub)' }}>관리자</p>
+              {[
+                { href: '/admin', label: '관리자 패널', icon: Shield },
+              ].map(item => (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  onClick={handleNavClick}
+                  className={cn(
+                    'flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm transition-colors',
+                    isActive(item.href) ? 'font-medium' : 'hover:bg-[var(--color-surface-2)]'
+                  )}
+                  style={{
+                    background: isActive(item.href) ? 'var(--color-surface-2)' : undefined,
+                    color: isActive(item.href) ? '#7C3AED' : 'var(--color-text-sub)',
                   }}
                 >
                   <item.icon className="w-4 h-4" />

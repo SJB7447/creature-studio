@@ -6,11 +6,13 @@ import { getCharacters, createCharacter, updateCharacter, deleteCharacter } from
 import { Character, EmotionVariant } from '@/types'
 import { useState, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Plus, Trash2, User, X, Edit3, Sparkles, Copy, CheckCircle, Camera, Lock, Loader2 } from 'lucide-react'
+import { Plus, Trash2, User, X, Edit3, Sparkles, Copy, CheckCircle, Camera, Lock, Loader2, Wand2 } from 'lucide-react'
 import { useForm } from 'react-hook-form'
 import { toast } from 'sonner'
 import ReferenceUploadButton from '@/components/common/ReferenceUploadButton'
-import { uploadCharacterProfile } from '@/lib/storage'
+import { uploadCharacterProfile, uploadCharacterGeneratedImage } from '@/lib/storage'
+import { useAuthStore } from '@/store/authStore'
+import { useCreditStore } from '@/store/creditStore'
 
 interface CharFormData {
   name: string
@@ -47,6 +49,7 @@ function CharacterModal({
   const [profileUploading, setProfileUploading] = useState(false)
   const [profilePreview, setProfilePreview] = useState<string | null>(null)
   const profileInputRef = useRef<HTMLInputElement>(null)
+  const [imgGenOpen, setImgGenOpen] = useState(false)
 
   async function handleProfileUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
@@ -121,6 +124,7 @@ function CharacterModal({
   const inputStyle = { background: 'var(--color-surface-2)', borderColor: 'var(--color-border)', color: 'var(--color-text)' }
 
   return (
+    <>
     <AnimatePresence>
       <div className="fixed inset-0 z-50 flex items-center justify-center">
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose} />
@@ -179,6 +183,32 @@ function CharacterModal({
                 )}
               </div>
             </div>
+
+            {/* AI 이미지 생성 — 기존 캐릭터 편집 시에만 표시 */}
+            {editChar && (
+              <div
+                className="flex items-center gap-3 p-3 rounded-xl border"
+                style={{ background: '#F5F3FF', borderColor: '#C4B5FD' }}
+              >
+                <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0" style={{ background: '#7C3AED' }}>
+                  <Wand2 className="w-4 h-4 text-white" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs font-semibold" style={{ color: '#6D28D9' }}>AI 캐릭터 이미지 생성</p>
+                  <p className="text-[10px] mt-0.5" style={{ color: '#7C3AED' }}>
+                    {editChar.masterReferenceImage ? '마스터 레퍼런스 확정됨 · 재생성 가능' : '4장 후보 생성 후 마스터 레퍼런스로 확정'}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setImgGenOpen(true)}
+                  className="shrink-0 px-3 py-1.5 rounded-lg text-xs font-semibold text-white transition-opacity hover:opacity-80"
+                  style={{ background: '#7C3AED' }}
+                >
+                  {editChar.masterReferenceImage ? '재생성' : 'AI 생성'}
+                </button>
+              </div>
+            )}
 
             {/* Reference upload */}
             <ReferenceUploadButton
@@ -280,17 +310,108 @@ function CharacterModal({
         </motion.div>
       </div>
     </AnimatePresence>
+
+    {editChar && imgGenOpen && (
+      <CharacterImageGeneratorModal
+        open={imgGenOpen}
+        onClose={() => setImgGenOpen(false)}
+        char={editChar}
+        projectId={projectId}
+      />
+    )}
+  </>
   )
 }
 
-function ImagePromptModal({ open, onClose, char }: { open: boolean; onClose: () => void; char: Character }) {
+// ─── 캐릭터 이미지 프롬프트 구성 헬퍼 ───────────────────────
+function buildCharacterImagePrompt(char: Character, emotion: string): string {
+  const variant = char.emotionVariants.find(v => v.emotion === emotion)
+  const name = char.nameEn || char.name
+  const emotionLine = emotion && variant
+    ? `Emotion state: ${emotion}. Visual change: ${variant.appearanceChange}. Additional keywords: ${variant.promptAddition}.`
+    : ''
+  return [
+    `Character reference sheet for animation production: ${name}.`,
+    `Role: ${char.role}.`,
+    char.appearance.base,
+    `Style: ${char.appearance.styleKeywords.join(', ')}.`,
+    `Color palette: ${char.appearance.colorScheme}.`,
+    emotionLine,
+    `Visual keywords: ${char.appearance.fixedPromptKeywords.join(', ')}.`,
+    'Full body character design, clear reference sheet, clean illustration style, white or neutral background, consistent proportions. High quality character design for animation production.',
+  ].filter(Boolean).join(' ')
+}
+
+// ─── CharacterImageGeneratorModal ────────────────────────────
+function CharacterImageGeneratorModal({
+  open, onClose, char, projectId,
+}: {
+  open: boolean; onClose: () => void; char: Character; projectId: string
+}) {
+  const queryClient = useQueryClient()
+  const { user } = useAuthStore()
+  const { setShowChargeModal } = useCreditStore()
   const [emotion, setEmotion] = useState('')
-  const [result, setResult] = useState('')
-  const [loading, setLoading] = useState(false)
+  const [generating, setGenerating] = useState(false)
+  const [candidates, setCandidates] = useState<{ data: string; mimeType: string }[]>([])
+  const [selectedIdx, setSelectedIdx] = useState<number | null>(null)
+  const [saving, setSaving] = useState(false)
+
+  // 텍스트 프롬프트 탭
+  const [showText, setShowText] = useState(false)
+  const [textResult, setTextResult] = useState('')
+  const [textLoading, setTextLoading] = useState(false)
   const [copied, setCopied] = useState(false)
 
-  async function generate() {
-    setLoading(true); setResult('')
+  async function handleGenerate() {
+    setGenerating(true); setCandidates([]); setSelectedIdx(null)
+    try {
+      const prompt = buildCharacterImagePrompt(char, emotion)
+      const res = await fetch('/api/generate-image', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          prompt,
+          model: 'gemini-pro',
+          count: 4,
+          aspectRatio: '1:1',
+          uid: user?.uid,
+          feature: 'character_image',
+        }),
+      })
+      if (res.status === 402) {
+        setShowChargeModal(true, 18)
+        return
+      }
+      const data = await res.json()
+      if (data.error) throw new Error(data.error)
+      setCandidates(data.images ?? [])
+    } catch (e: any) {
+      toast.error('이미지 생성 실패: ' + e.message)
+    } finally {
+      setGenerating(false)
+    }
+  }
+
+  async function handleConfirm() {
+    if (selectedIdx === null || !candidates[selectedIdx]) return
+    setSaving(true)
+    try {
+      const { data, mimeType } = candidates[selectedIdx]
+      const url = await uploadCharacterGeneratedImage(projectId, char.id, data, mimeType)
+      await updateCharacter(projectId, char.id, { masterReferenceImage: url })
+      queryClient.invalidateQueries({ queryKey: ['characters', projectId] })
+      toast.success('마스터 레퍼런스 이미지가 확정되었습니다!')
+      onClose()
+    } catch (e: any) {
+      toast.error('저장 실패: ' + e.message)
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  async function handleTextGenerate() {
+    setTextLoading(true); setTextResult('')
     try {
       const variant = char.emotionVariants.find(v => v.emotion === emotion)
       const promptText = `Generate an image generation prompt for the following character:
@@ -313,32 +434,40 @@ Generate a detailed Midjourney-style image prompt for this character. Include co
       })
       const data = await res.json()
       if (data.error) throw new Error(data.error)
-      setResult(data.result)
+      setTextResult(data.result)
     } catch (e: any) {
       toast.error('생성 실패: ' + e.message)
-    } finally { setLoading(false) }
+    } finally { setTextLoading(false) }
   }
 
   if (!open) return null
 
+  const selectStyle = { background: 'var(--color-surface-2)', borderColor: 'var(--color-border)', color: 'var(--color-text)' }
+
   return (
     <AnimatePresence>
-      <div className="fixed inset-0 z-50 flex items-center justify-center">
+      <div className="fixed inset-0 z-[60] flex items-center justify-center">
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose} />
         <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}
-          className="relative z-10 w-full max-w-lg mx-4 rounded-2xl shadow-2xl border"
+          className="relative z-10 w-full max-w-xl mx-4 rounded-2xl shadow-2xl border max-h-[92vh] overflow-y-auto"
           style={{ background: 'var(--color-surface)', borderColor: 'var(--color-border)' }}
         >
-          <div className="flex items-center justify-between p-5 border-b" style={{ borderColor: 'var(--color-border)' }}>
-            <h2 className="font-semibold" style={{ color: 'var(--color-text)' }}>{char.name} 이미지 프롬프트</h2>
+          {/* Header */}
+          <div className="flex items-center justify-between p-5 border-b sticky top-0 z-10" style={{ borderColor: 'var(--color-border)', background: 'var(--color-surface)' }}>
+            <div className="flex items-center gap-2">
+              <Wand2 className="w-4 h-4" style={{ color: 'var(--color-primary-dark)' }} />
+              <h2 className="font-semibold" style={{ color: 'var(--color-text)' }}>{char.name} · AI 이미지 생성</h2>
+            </div>
             <button onClick={onClose} className="p-1.5 rounded-lg hover:opacity-70"><X className="w-4 h-4" style={{ color: 'var(--color-text-sub)' }} /></button>
           </div>
-          <div className="p-5 space-y-4">
+
+          <div className="p-5 space-y-5">
+            {/* Emotion selector */}
             <div>
               <label className="block text-xs mb-1.5" style={{ color: 'var(--color-text-sub)' }}>감정 상태 선택</label>
               <select value={emotion} onChange={e => setEmotion(e.target.value)}
                 className="w-full px-3 py-2 rounded-lg border text-sm"
-                style={{ background: 'var(--color-surface-2)', borderColor: 'var(--color-border)', color: 'var(--color-text)' }}
+                style={selectStyle}
               >
                 <option value="">기본 (감정 없음)</option>
                 {char.emotionVariants.map(v => (
@@ -347,27 +476,107 @@ Generate a detailed Midjourney-style image prompt for this character. Include co
               </select>
             </div>
 
-            <button onClick={generate} disabled={loading}
+            {/* Generate button */}
+            <button
+              onClick={handleGenerate}
+              disabled={generating}
               className="w-full flex items-center justify-center gap-2 py-2.5 rounded-lg text-white text-sm font-medium disabled:opacity-60"
               style={{ background: 'var(--color-primary-dark)' }}
             >
-              <Sparkles className="w-4 h-4" />
-              {loading ? '생성 중...' : '프롬프트 생성'}
+              {generating
+                ? <><Loader2 className="w-4 h-4 animate-spin" />이미지 생성 중 (4장)...</>
+                : <><Wand2 className="w-4 h-4" />AI 이미지 생성 (4장 후보)</>}
             </button>
 
-            {result && (
-              <div className="p-4 rounded-lg border" style={{ background: 'var(--color-surface-2)', borderColor: 'var(--color-border)' }}>
-                <p className="text-xs font-mono whitespace-pre-wrap leading-relaxed" style={{ color: 'var(--color-text)' }}>{result}</p>
-                <button onClick={async () => {
-                  await navigator.clipboard.writeText(result)
-                  setCopied(true); toast.success('복사됨')
-                  setTimeout(() => setCopied(false), 2000)
-                }} className="mt-3 flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs" style={{ borderColor: 'var(--color-border)', color: 'var(--color-text-sub)' }}>
-                  {copied ? <CheckCircle className="w-3 h-3" style={{ color: 'green' }} /> : <Copy className="w-3 h-3" />}
-                  {copied ? '복사됨' : '복사'}
-                </button>
+            {/* 2x2 candidate grid */}
+            {candidates.length > 0 && (
+              <div className="space-y-3">
+                <p className="text-xs font-medium" style={{ color: 'var(--color-text-sub)' }}>후보 이미지 선택 (1장)</p>
+                <div className="grid grid-cols-2 gap-2">
+                  {candidates.map((img, idx) => (
+                    <div
+                      key={idx}
+                      onClick={() => setSelectedIdx(idx)}
+                      className="relative rounded-xl overflow-hidden border-2 cursor-pointer transition-all"
+                      style={{
+                        borderColor: selectedIdx === idx ? 'var(--color-primary-dark)' : 'var(--color-border)',
+                        boxShadow: selectedIdx === idx ? '0 0 0 2px var(--color-primary-dark)' : 'none',
+                      }}
+                    >
+                      <img
+                        src={`data:${img.mimeType};base64,${img.data}`}
+                        alt={`후보 ${idx + 1}`}
+                        className="w-full aspect-square object-cover"
+                      />
+                      {/* Index badge */}
+                      <div className="absolute top-1.5 left-1.5 w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold"
+                        style={{ background: 'rgba(0,0,0,0.55)', color: 'white' }}>
+                        {idx + 1}
+                      </div>
+                      {/* Selected checkmark */}
+                      {selectedIdx === idx && (
+                        <div className="absolute top-1.5 right-1.5 w-5 h-5 rounded-full flex items-center justify-center"
+                          style={{ background: 'var(--color-primary-dark)' }}>
+                          <CheckCircle className="w-3 h-3 text-white" />
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+
+                {/* Confirm selected */}
+                {selectedIdx !== null && (
+                  <button
+                    onClick={handleConfirm}
+                    disabled={saving}
+                    className="w-full flex items-center justify-center gap-2 py-2.5 rounded-lg text-white text-sm font-medium disabled:opacity-60"
+                    style={{ background: '#10B981' }}
+                  >
+                    {saving
+                      ? <><Loader2 className="w-4 h-4 animate-spin" />저장 중...</>
+                      : <><Lock className="w-4 h-4" />이 이미지로 마스터 레퍼런스 확정</>}
+                  </button>
+                )}
               </div>
             )}
+
+            {/* Text prompt section (collapsible) */}
+            <div className="border-t pt-4" style={{ borderColor: 'var(--color-border)' }}>
+              <button
+                onClick={() => setShowText(v => !v)}
+                className="flex items-center gap-1.5 text-xs"
+                style={{ color: 'var(--color-text-sub)' }}
+              >
+                <Sparkles className="w-3.5 h-3.5" />
+                {showText ? '텍스트 프롬프트 숨기기' : '텍스트 프롬프트만 생성'}
+              </button>
+
+              {showText && (
+                <div className="mt-3 space-y-3">
+                  <button onClick={handleTextGenerate} disabled={textLoading}
+                    className="w-full flex items-center justify-center gap-2 py-2 rounded-lg border text-xs font-medium disabled:opacity-60"
+                    style={{ borderColor: 'var(--color-border)', color: 'var(--color-primary-dark)' }}
+                  >
+                    <Sparkles className="w-3.5 h-3.5" />
+                    {textLoading ? '생성 중...' : '프롬프트 생성'}
+                  </button>
+
+                  {textResult && (
+                    <div className="p-4 rounded-lg border" style={{ background: 'var(--color-surface-2)', borderColor: 'var(--color-border)' }}>
+                      <p className="text-xs font-mono whitespace-pre-wrap leading-relaxed" style={{ color: 'var(--color-text)' }}>{textResult}</p>
+                      <button onClick={async () => {
+                        await navigator.clipboard.writeText(textResult)
+                        setCopied(true); toast.success('복사됨')
+                        setTimeout(() => setCopied(false), 2000)
+                      }} className="mt-3 flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs" style={{ borderColor: 'var(--color-border)', color: 'var(--color-text-sub)' }}>
+                        {copied ? <CheckCircle className="w-3 h-3" style={{ color: 'green' }} /> : <Copy className="w-3 h-3" />}
+                        {copied ? '복사됨' : '복사'}
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
           </div>
         </motion.div>
       </div>
@@ -377,7 +586,7 @@ Generate a detailed Midjourney-style image prompt for this character. Include co
 
 function CharacterCard({ char, projectId, onEdit }: { char: Character; projectId: string; onEdit: () => void }) {
   const queryClient = useQueryClient()
-  const [imgPromptOpen, setImgPromptOpen] = useState(false)
+  const [imgGenOpen, setImgGenOpen] = useState(false)
 
   const deleteMutation = useMutation({
     mutationFn: () => deleteCharacter(projectId, char.id),
@@ -393,16 +602,23 @@ function CharacterCard({ char, projectId, onEdit }: { char: Character; projectId
         <div className="flex items-start justify-between mb-3">
           <div className="flex items-center gap-3">
             <div className="relative shrink-0">
-              {char.profileImage ? (
-                <div className="w-10 h-10 rounded-full overflow-hidden border-2" style={{ borderColor: '#10B981' }}>
-                  <img src={char.profileImage} alt={char.name} className="w-full h-full object-cover" />
+              {(char.masterReferenceImage || char.profileImage) ? (
+                <div className="w-10 h-10 rounded-full overflow-hidden border-2"
+                  style={{ borderColor: char.masterReferenceImage ? '#7C3AED' : '#10B981' }}>
+                  <img src={char.masterReferenceImage || char.profileImage} alt={char.name} className="w-full h-full object-cover" />
                 </div>
               ) : (
                 <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ background: 'var(--color-primary)' }}>
                   <User className="w-5 h-5" style={{ color: 'var(--color-primary-dark)' }} />
                 </div>
               )}
-              {char.profileImage && (
+              {char.masterReferenceImage && (
+                <div className="absolute -bottom-0.5 -right-0.5 w-4 h-4 rounded-full flex items-center justify-center border"
+                  style={{ background: '#7C3AED', borderColor: 'var(--color-surface)' }}>
+                  <Wand2 className="w-2 h-2 text-white" />
+                </div>
+              )}
+              {!char.masterReferenceImage && char.profileImage && (
                 <div className="absolute -bottom-0.5 -right-0.5 w-4 h-4 rounded-full flex items-center justify-center border"
                   style={{ background: '#10B981', borderColor: 'var(--color-surface)' }}>
                   <Lock className="w-2 h-2 text-white" />
@@ -414,13 +630,14 @@ function CharacterCard({ char, projectId, onEdit }: { char: Character; projectId
               <p className="text-xs" style={{ color: 'var(--color-text-sub)' }}>{char.nameEn} · {char.role}</p>
             </div>
           </div>
-          <div className="flex gap-1 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
-            <button onClick={onEdit} className="p-1.5 rounded-md hover:opacity-70">
+          <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+            <button onClick={onEdit} className="p-1.5 rounded-md hover:opacity-70" title="캐릭터 편집 (AI 생성 포함)">
               <Edit3 className="w-4 h-4" style={{ color: 'var(--color-primary-dark)' }} />
             </button>
             <button
               onClick={() => { if (confirm(`"${char.name}" 삭제할까요?`)) deleteMutation.mutate() }}
               className="p-1.5 rounded-md hover:opacity-70"
+              title="삭제"
             >
               <Trash2 className="w-4 h-4" style={{ color: '#EF4444' }} />
             </button>
@@ -433,8 +650,19 @@ function CharacterCard({ char, projectId, onEdit }: { char: Character; projectId
           {char.emotionalRole && <span className="text-xs px-2 py-0.5 rounded-full" style={{ background: 'var(--color-accent-2)', color: '#0369A1' }}>{char.emotionalRole}</span>}
         </div>
 
-        {/* Confirmed profile image showcase */}
-        {char.profileImage && (
+        {/* AI 마스터 레퍼런스 이미지 (우선 표시) */}
+        {char.masterReferenceImage && (
+          <div className="mb-3 rounded-lg overflow-hidden border-2" style={{ borderColor: '#7C3AED' }}>
+            <img src={char.masterReferenceImage} alt={`${char.name} AI 마스터 레퍼런스`} className="w-full h-40 object-cover" />
+            <div className="px-2 py-1 flex items-center gap-1.5" style={{ background: '#EDE9FE' }}>
+              <Wand2 className="w-3 h-3" style={{ color: '#7C3AED' }} />
+              <span className="text-[10px] font-medium" style={{ color: '#6D28D9' }}>AI 마스터 레퍼런스 · 확정</span>
+            </div>
+          </div>
+        )}
+
+        {/* 수동 업로드 확정 프로필 이미지 (AI 레퍼런스 없을 때) */}
+        {!char.masterReferenceImage && char.profileImage && (
           <div className="mb-3 rounded-lg overflow-hidden border" style={{ borderColor: '#10B981' }}>
             <img src={char.profileImage} alt={`${char.name} 확정 디자인`} className="w-full h-40 object-cover" />
             <div className="px-2 py-1 flex items-center gap-1.5" style={{ background: '#ECFDF5' }}>
@@ -479,17 +707,14 @@ function CharacterCard({ char, projectId, onEdit }: { char: Character; projectId
           </p>
         )}
 
-        {/* Image prompt button */}
-        <button
-          onClick={() => setImgPromptOpen(true)}
-          className="w-full flex items-center justify-center gap-1.5 py-2 rounded-lg border text-xs transition-colors hover:opacity-80"
-          style={{ borderColor: 'var(--color-border)', color: 'var(--color-primary-dark)' }}
-        >
-          <Sparkles className="w-3.5 h-3.5" />이미지 프롬프트 생성
-        </button>
       </div>
 
-      <ImagePromptModal open={imgPromptOpen} onClose={() => setImgPromptOpen(false)} char={char} />
+      <CharacterImageGeneratorModal
+        open={imgGenOpen}
+        onClose={() => setImgGenOpen(false)}
+        char={char}
+        projectId={projectId}
+      />
     </>
   )
 }

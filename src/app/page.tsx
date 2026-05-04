@@ -3,7 +3,7 @@
 import { useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuthStore } from '@/store/authStore'
-import { LoginPage } from '@/components/auth/LoginPage'
+import { LandingPage } from '@/components/landing/LandingPage'
 
 export default function Home() {
   const { user, loading } = useAuthStore()
@@ -27,7 +27,7 @@ export default function Home() {
   }
 
   if (!user) {
-    return <LoginPage />
+    return <LandingPage />
   }
 
   return null

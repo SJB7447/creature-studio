@@ -57,6 +57,29 @@ export async function uploadGeneratedImage(
   return getDownloadURL(storageRef)
 }
 
+/**
+ * AI로 생성된 캐릭터 이미지를 Firebase Storage에 업로드
+ * 경로: projects/{projectId}/characters/{characterId}/master_{timestamp}.{ext}
+ */
+export async function uploadCharacterGeneratedImage(
+  projectId: string,
+  characterId: string,
+  base64Data: string,
+  mimeType: string = 'image/png'
+): Promise<string> {
+  const byteCharacters = atob(base64Data)
+  const byteArray = new Uint8Array(byteCharacters.length)
+  for (let i = 0; i < byteCharacters.length; i++) {
+    byteArray[i] = byteCharacters.charCodeAt(i)
+  }
+  const blob = new Blob([byteArray], { type: mimeType })
+  const ext = mimeType.split('/')[1] ?? 'png'
+  const path = `projects/${projectId}/characters/${characterId}/master_${Date.now()}.${ext}`
+  const storageRef = ref(storage, path)
+  await uploadBytes(storageRef, blob)
+  return getDownloadURL(storageRef)
+}
+
 export async function deleteStorageFile(fileUrl: string): Promise<void> {
   try {
     const storageRef = ref(storage, fileUrl)
