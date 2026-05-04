@@ -148,6 +148,48 @@ export type Database = {
           },
         ]
       }
+      payment_orders: {
+        Row: {
+          id: string
+          user_id: string
+          package_id: number
+          credits: number
+          amount: number
+          status: string
+          payment_key: string | null
+          error_code: string | null
+          error_msg: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          package_id: number
+          credits: number
+          amount: number
+          status?: string
+          payment_key?: string | null
+          error_code?: string | null
+          error_msg?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          package_id?: number
+          credits?: number
+          amount?: number
+          status?: string
+          payment_key?: string | null
+          error_code?: string | null
+          error_msg?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       users: {
         Row: {
           created_at: string
@@ -157,7 +199,9 @@ export type Database = {
           id: string
           onboarding_completed: boolean
           plan: string
+          production_type: string | null
           updated_at: string
+          welcome_bonus_given: boolean
         }
         Insert: {
           created_at?: string
@@ -167,7 +211,9 @@ export type Database = {
           id: string
           onboarding_completed?: boolean
           plan?: string
+          production_type?: string | null
           updated_at?: string
+          welcome_bonus_given?: boolean
         }
         Update: {
           created_at?: string
@@ -177,7 +223,9 @@ export type Database = {
           id?: string
           onboarding_completed?: boolean
           plan?: string
+          production_type?: string | null
           updated_at?: string
+          welcome_bonus_given?: boolean
         }
         Relationships: []
       }
@@ -186,7 +234,24 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      add_credits: {
+        Args: {
+          p_user_id: string
+          p_amount: number
+          p_type: string
+          p_feature: string
+        }
+        Returns: undefined
+      }
+      deduct_credits: {
+        Args: {
+          p_user_id: string
+          p_amount: number
+          p_type: string
+          p_feature: string
+        }
+        Returns: undefined
+      }
     }
     Enums: {
       [_ in never]: never

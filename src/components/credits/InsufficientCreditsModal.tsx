@@ -44,7 +44,7 @@ export function InsufficientCreditsModal() {
 
       // 2. TossPayments 위젯 실행
       const { loadTossPayments } = await import('@tosspayments/sdk')
-      const tossPayments = await loadTossPayments(TOSS_CLIENT_KEY)
+      const tossPayments = await loadTossPayments(TOSS_CLIENT_KEY) as any
       const payment = tossPayments.payment({ customerKey: user.uid })
 
       await payment.requestPayment({

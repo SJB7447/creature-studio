@@ -85,7 +85,7 @@ export default function OnboardingPage() {
           type:           'animation',
           genre:          state.projectGenre,
           targetAudience: '',
-          status:         'in_development',
+          status:         'development',
           ownerId:        user.uid,
           collaborators:  [],
           artContext: {
